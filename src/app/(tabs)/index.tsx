@@ -1,3 +1,4 @@
+import { BAMap } from "@/components/BAMap";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { THEME } from "@/constants/theme";
@@ -5,10 +6,8 @@ import { useRouter } from "expo-router";
 import { Crosshair, Menu, Package, Search } from "lucide-react-native";
 import { useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
-import { styles } from "./index.styles";
+import { styles } from "./_index.styles";
 
-// Dummy Bamenda Coordinates
 const INITIAL_REGION = {
   latitude: 5.9631,
   longitude: 10.1591,
@@ -17,35 +16,19 @@ const INITIAL_REGION = {
 };
 
 export default function DashboardMapScreen() {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const router = useRouter();
 
   const handleCurrentLocation = () => {
-    mapRef.current?.animateToRegion(INITIAL_REGION, 1000);
+    if (mapRef.current?.animateToRegion) {
+      mapRef.current.animateToRegion(INITIAL_REGION, 1000);
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Background Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={INITIAL_REGION}
-        showsUserLocation={true}
-        showsMyLocationButton={false}
-        provider={PROVIDER_DEFAULT}
-        customMapStyle={mapStyle}
-      >
-        {/* Example Driver Markers */}
-        <Marker coordinate={{ latitude: 5.961, longitude: 10.155 }}>
-          <View style={styles.driverMarkerContainer}>
-            <View style={styles.driverMarker}>
-              <Text style={styles.driverMarkerText}>🏍️</Text>
-            </View>
-            <View style={styles.driverMarkerTriangle} />
-          </View>
-        </Marker>
-      </MapView>
+      {/* Background Map extracted for Web compatibility */}
+      <BAMap ref={mapRef} initialRegion={INITIAL_REGION} mapStyle={mapStyle} />
 
       {/* Floating Header */}
       <View style={styles.headerContainer}>
@@ -89,7 +72,7 @@ export default function DashboardMapScreen() {
   );
 }
 
-// Gentle grayscale/clean map style
+// Gentle grayscale map style
 const mapStyle = [
   {
     featureType: "all",

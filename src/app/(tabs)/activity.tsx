@@ -2,7 +2,7 @@ import { Card } from "@/components/Card";
 import { THEME } from "@/constants/theme";
 import { Clock, MapPin, PackageCheck } from "lucide-react-native";
 import { SafeAreaView, ScrollView, Text, View } from "react-native";
-import { styles } from "./activity.styles";
+import { styles } from "./_activity.styles";
 
 export default function ActivityScreen() {
   const pastDeliveries = [

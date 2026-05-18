@@ -11,7 +11,7 @@ import {
     Text,
     View
 } from "react-native";
-import { styles } from "./login.styles";
+import { styles } from "./_login.styles";
 
 export default function LoginScreen() {
   const router = useRouter();

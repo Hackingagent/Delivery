@@ -10,7 +10,7 @@ import {
     Text,
     View,
 } from "react-native";
-import { styles } from "./signup.styles";
+import { styles } from "./_signup.styles";
 
 export default function SignupScreen() {
   const router = useRouter();
