@@ -17,7 +17,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { styles } from "./_profile.styles";
+import { styles } from "@/styles/(tabs)/profile.styles";
 
 export default function ProfileScreen() {
   const router = useRouter();

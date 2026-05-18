@@ -9,8 +9,8 @@ export const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: THEME.sizes.spacingLg,
-    justifyContent: "center",
-    paddingTop: THEME.sizes.spacingXl * 2,
+    paddingTop: 100,
+    paddingBottom: 40,
   },
   header: {
     marginBottom: THEME.sizes.spacingXl,

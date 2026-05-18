@@ -1,19 +1,19 @@
 import { Button } from "@/components/Button";
 import { THEME } from "@/constants/theme";
+import { styles } from "@/styles/delivery-request/styles";
 import { useRouter } from "expo-router";
 import { ArrowLeft, CheckCircle, Star } from "lucide-react-native";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { styles } from "./_styles";
 
 export default function RatingScreen() {
   const router = useRouter();
@@ -33,6 +33,7 @@ export default function RatingScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        
       >
         <View style={styles.header}>
           {!submitted && (
@@ -48,6 +49,7 @@ export default function RatingScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {submitted ? (
             <View style={styles.successContainer}>

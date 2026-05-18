@@ -1,18 +1,18 @@
 import { THEME } from "@/constants/theme";
+import { styles } from "@/styles/delivery-request/styles";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Phone, SendHorizontal } from "lucide-react-native";
 import { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { styles } from "./_styles";
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -48,6 +48,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        
       >
         <View style={styles.header}>
           <TouchableOpacity
@@ -68,6 +69,7 @@ export default function ChatScreen() {
         <ScrollView
           contentContainerStyle={styles.chatScroll}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.systemMessageContainer}>
             <Text style={styles.systemMessage}>

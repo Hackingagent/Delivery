@@ -25,7 +25,7 @@ export const styles = StyleSheet.create({
   inputFocused: {
     borderColor: THEME.colors.primary,
     backgroundColor: THEME.colors.surface,
-    ...THEME.shadows.small,
+    // removed to prevent native view recreation
   },
   inputError: {
     borderColor: THEME.colors.error,

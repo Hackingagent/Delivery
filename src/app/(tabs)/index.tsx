@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { Crosshair, Menu, Package, Search } from "lucide-react-native";
 import { useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { styles } from "./_index.styles";
+import { styles } from "@/styles/(tabs)/index.styles";
 
 const INITIAL_REGION = {
   latitude: 5.9631,

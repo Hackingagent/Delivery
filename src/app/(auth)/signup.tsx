@@ -1,6 +1,7 @@
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { THEME } from "@/constants/theme";
+import { styles } from "@/styles/(auth)/signup.styles";
 import { useRouter } from "expo-router";
 import { Lock, Mail, Phone, User } from "lucide-react-native";
 import {
@@ -10,7 +11,6 @@ import {
     Text,
     View,
 } from "react-native";
-import { styles } from "./_signup.styles";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -18,11 +18,13 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>

@@ -2,6 +2,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Input } from "@/components/Input";
 import { THEME } from "@/constants/theme";
+import { styles } from "@/styles/delivery-request/styles";
 import { useRouter } from "expo-router";
 import {
     ArrowLeft,
@@ -19,7 +20,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { styles } from "./_styles";
 
 export default function DeliveryRequestScreen() {
   const router = useRouter();
@@ -36,7 +36,8 @@ export default function DeliveryRequestScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      
     >
       <View style={styles.header}>
         <TouchableOpacity
@@ -52,6 +53,7 @@ export default function DeliveryRequestScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <Card style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Location Details</Text>

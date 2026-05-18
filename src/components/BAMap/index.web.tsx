@@ -1,4 +1,4 @@
-import { styles } from "@/app/(tabs)/_index.styles";
+import { styles } from "@/styles/(tabs)/index.styles";
 import { THEME } from "@/constants/theme";
 import { Map as MapIcon } from "lucide-react-native";
 import { forwardRef } from "react";

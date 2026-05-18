@@ -1,17 +1,17 @@
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { THEME } from "@/constants/theme";
+import { styles } from "@/styles/(auth)/login.styles";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Lock, Mail } from "lucide-react-native";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    View
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
-import { styles } from "./_login.styles";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,11 +19,13 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <View style={styles.logoContainer}>

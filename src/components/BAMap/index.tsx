@@ -1,4 +1,4 @@
-import { styles } from "@/app/(tabs)/_index.styles";
+import { styles } from "@/styles/(tabs)/index.styles";
 import { forwardRef } from "react";
 import { Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";

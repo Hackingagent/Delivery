@@ -14,7 +14,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { styles } from "./_styles";
+import { styles } from "@/styles/delivery-request/styles";
 
 export default function PaymentScreen() {
   const router = useRouter();
