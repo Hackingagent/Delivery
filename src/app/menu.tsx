@@ -102,7 +102,7 @@ export default function MenuDrawer() {
             <MenuItem
               icon={<FileText color={THEME.colors.primary} size={22} />}
               label="Delivery Receipts"
-              onPress={() => handleNavigate("/receipts/1")}
+              onPress={() => handleNavigate("/receipts/history")}
             />
             <MenuItem
               icon={<Settings color={THEME.colors.primary} size={22} />}

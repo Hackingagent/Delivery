@@ -1,6 +1,12 @@
 import { THEME } from "@/constants/theme";
 import { Tabs } from "expo-router";
-import { Clock, Map, MessageCircle, User } from "lucide-react-native";
+import {
+    Clock,
+    Map,
+    MessageCircle,
+    Navigation,
+    User,
+} from "lucide-react-native";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
@@ -42,6 +48,15 @@ export default function TabLayout() {
         options={{
           title: "Activity",
           tabBarIcon: ({ color, size }) => <Clock color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="track"
+        options={{
+          title: "Track",
+          tabBarIcon: ({ color, size }) => (
+            <Navigation color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
