@@ -1,9 +1,10 @@
 import { THEME } from "@/constants/theme";
 import { Tabs, useRouter } from "expo-router";
 import {
-    ArrowLeft,
-    BriefcaseBusiness,
-    Settings
+  ArrowLeft,
+  Banknote,
+  BriefcaseBusiness,
+  Settings,
 } from "lucide-react-native";
 import { Platform, TouchableOpacity } from "react-native";
 
@@ -48,9 +49,18 @@ export default function AgentLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "My Deliveries",
+          title: "Deliveries",
           tabBarIcon: ({ color, size }) => (
             <BriefcaseBusiness color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="earnings"
+        options={{
+          title: "Earnings",
+          tabBarIcon: ({ color, size }) => (
+            <Banknote color={color} size={size} />
           ),
         }}
       />

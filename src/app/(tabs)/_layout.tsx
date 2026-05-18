@@ -3,9 +3,8 @@ import { Tabs } from "expo-router";
 import {
     Clock,
     Map,
-    MessageCircle,
     Navigation,
-    User,
+    User
 } from "lucide-react-native";
 import { Platform } from "react-native";
 
@@ -56,15 +55,6 @@ export default function TabLayout() {
           title: "Track",
           tabBarIcon: ({ color, size }) => (
             <Navigation color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: "Messages",
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle color={color} size={size} />
           ),
         }}
       />

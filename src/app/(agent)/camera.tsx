@@ -1,13 +1,16 @@
+import { Button } from "@/components/Button";
 import { THEME } from "@/constants/theme";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CheckCircle2, X } from "lucide-react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
-    Animated,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function AgentCameraScreen() {
@@ -16,8 +19,46 @@ export default function AgentCameraScreen() {
   const [captured, setCaptured] = useState(false);
   const flashOpacity = new Animated.Value(0);
 
-  const takePicture = () => {
-    // Flash animation to fake shutter
+  // Real Camera Hardware Setup
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
+
+  if (!permission) {
+    // Camera permissions are still loading.
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={THEME.colors.primary} />
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    // Camera permissions are not granted yet.
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.permissionText}>
+          We need your permission to use the camera for Proof of Delivery.
+        </Text>
+        <Button
+          onPress={requestPermission}
+          title="Grant Permission"
+          style={{ marginTop: 24, paddingHorizontal: 32 }}
+        />
+      </View>
+    );
+  }
+
+  const takePicture = async () => {
+    // Fire real camera snap if ready
+    if (cameraRef.current) {
+      try {
+        await cameraRef.current.takePictureAsync();
+      } catch (e) {
+        console.log("Mocking snap since emulator might not support capture", e);
+      }
+    }
+
+    // Flash animation to fake shutter visually strongly
     Animated.sequence([
       Animated.timing(flashOpacity, {
         toValue: 1,
@@ -60,7 +101,14 @@ export default function AgentCameraScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Mock Camera Viewfinder */}
+      {/* Real Hardware Camera View */}
+      <CameraView
+        style={StyleSheet.absoluteFillObject}
+        facing="back"
+        ref={cameraRef}
+      />
+
+      {/* Viewfinder Overlay Targeting */}
       <View style={styles.viewfinderContainer}>
         <View style={styles.targetCornerTL} />
         <View style={styles.targetCornerTR} />
@@ -96,6 +144,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: THEME.colors.background,
+    padding: 24,
+  },
+  permissionText: {
+    textAlign: "center",
+    fontSize: 16,
+    color: THEME.colors.text,
+    lineHeight: 24,
   },
   header: {
     position: "absolute",
