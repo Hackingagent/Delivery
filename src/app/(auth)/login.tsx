@@ -6,11 +6,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Lock, Mail } from "lucide-react-native";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -20,7 +20,6 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -76,6 +75,22 @@ export default function LoginScreen() {
               title="Sign Up"
               type="text"
               onPress={() => router.push("/(auth)/signup")}
+            />
+          </View>
+
+          <View style={[styles.registerContainer, { marginTop: 40 }]}>
+            <Button
+              title="Admin Portal"
+              type="text"
+              textStyle={{ fontWeight: "700" }}
+              onPress={() => router.push("/(auth)/admin-login")}
+            />
+            <Text style={styles.registerText}> | </Text>
+            <Button
+              title="Agent Portal"
+              type="text"
+              textStyle={{ fontWeight: "700" }}
+              onPress={() => router.push("/(auth)/agent-login")}
             />
           </View>
         </View>
