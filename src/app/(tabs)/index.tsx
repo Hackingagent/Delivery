@@ -2,11 +2,11 @@ import { BAMap } from "@/components/BAMap";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { THEME } from "@/constants/theme";
+import { styles } from "@/styles/(tabs)/index.styles";
 import { useRouter } from "expo-router";
 import { Crosshair, Menu, Package, Search } from "lucide-react-native";
 import { useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { styles } from "@/styles/(tabs)/index.styles";
 
 const INITIAL_REGION = {
   latitude: 5.9631,
@@ -32,7 +32,10 @@ export default function DashboardMapScreen() {
 
       {/* Floating Header */}
       <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => router.push("/menu")}
+        >
           <Menu color={THEME.colors.text} size={24} />
         </TouchableOpacity>
         <Card noPadding elevation="small" style={styles.searchCard}>

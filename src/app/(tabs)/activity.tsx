@@ -1,8 +1,15 @@
 import { Card } from "@/components/Card";
 import { THEME } from "@/constants/theme";
-import { Clock, MapPin, PackageCheck } from "lucide-react-native";
-import { SafeAreaView, ScrollView, Text, View } from "react-native";
 import { styles } from "@/styles/(tabs)/activity.styles";
+import { useRouter } from "expo-router";
+import { Clock, MapPin, PackageCheck } from "lucide-react-native";
+import {
+    SafeAreaView,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 export default function ActivityScreen() {
   const pastDeliveries = [
@@ -30,7 +37,17 @@ export default function ActivityScreen() {
       from: "Hospital Roundabout",
       to: "Mile 90",
     },
+    {
+      id: 4,
+      date: "Just Now",
+      status: "In Transit",
+      price: "1,200 FCFA",
+      from: "Food Market",
+      to: "Up Station",
+    },
   ];
+
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -45,56 +62,69 @@ export default function ActivityScreen() {
         <Text style={styles.sectionTitle}>Recent Deliveries</Text>
 
         {pastDeliveries.map((delivery) => (
-          <Card key={delivery.id} style={styles.activityCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.dateContainer}>
-                <Clock color={THEME.colors.textLight} size={16} />
-                <Text style={styles.dateText}>{delivery.date}</Text>
+          <TouchableOpacity
+            key={delivery.id}
+            activeOpacity={0.8}
+            onPress={() => {
+              if (delivery.status === "Delivered") {
+                router.push(`/receipts/${delivery.id}`);
+              } else {
+                router.push(`/track/${delivery.id}`);
+              }
+            }}
+          >
+            <Card style={styles.activityCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.dateContainer}>
+                  <Clock color={THEME.colors.textLight} size={16} />
+                  <Text style={styles.dateText}>{delivery.date}</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.priceText,
+                    delivery.status === "Cancelled" &&
+                      styles.priceTextCancelled,
+                  ]}
+                >
+                  {delivery.price}
+                </Text>
               </View>
-              <Text
+
+              <View style={styles.routeContainer}>
+                <View style={styles.routeItem}>
+                  <MapPin color={THEME.colors.textMuted} size={16} />
+                  <Text style={styles.routeText}>{delivery.from}</Text>
+                </View>
+                <View style={styles.routeItem}>
+                  <PackageCheck
+                    color={
+                      delivery.status === "Delivered"
+                        ? THEME.colors.success
+                        : THEME.colors.error
+                    }
+                    size={16}
+                  />
+                  <Text style={styles.routeText}>{delivery.to}</Text>
+                </View>
+              </View>
+
+              <View
                 style={[
-                  styles.priceText,
-                  delivery.status === "Cancelled" && styles.priceTextCancelled,
+                  styles.statusBadge,
+                  delivery.status === "Cancelled" && styles.statusBadgeError,
                 ]}
               >
-                {delivery.price}
-              </Text>
-            </View>
-
-            <View style={styles.routeContainer}>
-              <View style={styles.routeItem}>
-                <MapPin color={THEME.colors.textMuted} size={16} />
-                <Text style={styles.routeText}>{delivery.from}</Text>
+                <Text
+                  style={[
+                    styles.statusText,
+                    delivery.status === "Cancelled" && styles.statusTextError,
+                  ]}
+                >
+                  {delivery.status}
+                </Text>
               </View>
-              <View style={styles.routeItem}>
-                <PackageCheck
-                  color={
-                    delivery.status === "Delivered"
-                      ? THEME.colors.success
-                      : THEME.colors.error
-                  }
-                  size={16}
-                />
-                <Text style={styles.routeText}>{delivery.to}</Text>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.statusBadge,
-                delivery.status === "Cancelled" && styles.statusBadgeError,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  delivery.status === "Cancelled" && styles.statusTextError,
-                ]}
-              >
-                {delivery.status}
-              </Text>
-            </View>
-          </Card>
+            </Card>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </SafeAreaView>
