@@ -1,83 +1,125 @@
 import { Button } from "@/components/Button";
 import { THEME } from "@/constants/theme";
-import { useRouter } from "expo-router";
+import { deleteAgent, fetchAgents } from "@/lib/agentsApi";
+import type { Agent } from "@/types/admin";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
-  CheckCircle2,
+  Alert,
   Circle,
   Edit3,
-  MapPin,
   Phone,
-  User,
-  UserPlus,
-} from "lucide-react-native";
-import { useState } from "react";
-import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { User, UserPlus } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+function statusColor(status: Agent["status"]) {
+  switch (status) {
+    case "online":
+      return THEME.colors.success;
+    case "in_transit":
+      return THEME.colors.primary;
+    default:
+      return THEME.colors.textMuted;
+  }
+}
 
 export default function AdminAgentsScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState("All");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const agents = [
-    {
-      id: 1,
-      name: "Jude Courier",
-      status: "Online",
-      tasks: 2,
-      iconColor: THEME.colors.success,
-      currentTask: "Awaiting Pickup",
-    },
-    {
-      id: 2,
-      name: "Martin Tabot",
-      status: "In Transit",
-      tasks: 1,
-      iconColor: THEME.colors.primary,
-      currentTask: "Dropping off BAM-1044",
-    },
-    {
-      id: 3,
-      name: "Alice B.",
-      status: "Offline",
-      tasks: 0,
-      iconColor: THEME.colors.textMuted,
-    },
-  ];
+  const loadAgents = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
 
-  const displayAgents =
-    filter === "All" ? agents : agents.filter((a) => a.status === filter);
+    try {
+      const data = await fetchAgents(filter);
+      setAgents(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load agents.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [filter]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAgents();
+    }, [loadAgents]),
+  );
+
+  const handleDelete = (agent: Agent) => {
+    Alert.alert(
+      "Remove agent",
+      `Delete ${agent.name} from the fleet?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAgent(agent.id);
+              setExpandedId(null);
+              loadAgents(true);
+            } catch (err) {
+              Alert.alert(
+                "Error",
+                err instanceof Error ? err.message : "Could not delete agent.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadAgents(true)}
+            tintColor={THEME.colors.primary}
+          />
+        }
       >
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.sectionTitle}>Fleet Management</Text>
-            <Text style={styles.countText}>{agents.length} Total Vehicles</Text>
+            <Text style={styles.countText}>{agents.length} Total Couriers</Text>
           </View>
           <TouchableOpacity
-            style={{
-              backgroundColor: THEME.colors.primary,
-              padding: 10,
-              borderRadius: 12,
-            }}
-            onPress={() => router.push("/(admin)/agent-form")}
+            style={styles.addButton}
+            onPress={() =>
+              router.push({
+                pathname: "/(admin)/agent-form",
+              })
+            }
           >
             <UserPlus color={THEME.colors.surface} size={24} />
           </TouchableOpacity>
         </View>
 
-        {/* Filter Pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -105,94 +147,115 @@ export default function AdminAgentsScreen() {
           ))}
         </ScrollView>
 
-        {displayAgents.map((agent) => (
-          <TouchableOpacity
-            key={agent.id}
-            activeOpacity={0.9}
-            onPress={() =>
-              setExpandedId(expandedId === agent.id ? null : agent.id)
-            }
-            style={[
-              styles.agentCard,
-              expandedId === agent.id && {
-                borderColor: agent.iconColor,
-                borderWidth: 1,
-              },
-            ]}
-          >
-            <View style={styles.cardMain}>
-              <View style={styles.avatar}>
-                <User color={THEME.colors.surface} size={24} />
-              </View>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <View style={styles.agentInfo}>
-                <Text style={styles.agentName}>{agent.name}</Text>
-                <View style={styles.statusRow}>
-                  <Circle
-                    color={agent.iconColor}
-                    fill={agent.iconColor}
-                    size={10}
-                  />
-                  <Text style={styles.statusText}>{agent.status}</Text>
-                  <Text style={styles.taskCount}> • {agent.tasks} Tasks</Text>
+        {loading && !refreshing ? (
+          <Text style={styles.emptyText}>Loading couriers...</Text>
+        ) : null}
+
+        {!loading && agents.length === 0 ? (
+          <Text style={styles.emptyText}>
+            No couriers found. Tap + to add one.
+          </Text>
+        ) : null}
+
+        {agents.map((agent) => {
+          const iconColor = statusColor(agent.status);
+
+          return (
+            <TouchableOpacity
+              key={agent.id}
+              activeOpacity={0.9}
+              onPress={() =>
+                setExpandedId(expandedId === agent.id ? null : agent.id)
+              }
+              style={[
+                styles.agentCard,
+                expandedId === agent.id && {
+                  borderColor: iconColor,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <View style={styles.cardMain}>
+                <View style={styles.avatar}>
+                  <User color={THEME.colors.surface} size={24} />
                 </View>
-              </View>
 
-              <TouchableOpacity style={styles.callBtn}>
-                <Phone color={THEME.colors.primary} size={20} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Expanded Detailed Analytics view per agent */}
-            {expandedId === agent.id && (
-              <View style={styles.expandedSection}>
-                <View style={styles.divider} />
-
-                {agent.status !== "Offline" ? (
-                  <>
-                    <Text style={styles.detailLabel}>Current Objective</Text>
-                    <View style={styles.objectiveBox}>
-                      <MapPin color={THEME.colors.textMuted} size={16} />
-                      <Text style={styles.objectiveText}>
-                        {agent.currentTask}
-                      </Text>
-                    </View>
-
-                    <View style={styles.actionGrid}>
-                      <Button
-                        title="Message Agent"
-                        style={{
-                          flex: 1,
-                          backgroundColor: THEME.colors.primary,
-                          paddingVertical: 10,
-                        }}
-                        textStyle={{ fontSize: 13 }}
-                      />
-                      <Button
-                        title="Edit Profile"
-                        icon={<Edit3 color={THEME.colors.surface} size={16} />}
-                        style={{
-                          flex: 1,
-                          backgroundColor: THEME.colors.secondary,
-                          paddingVertical: 10,
-                        }}
-                        textStyle={{ fontSize: 13 }}
-                        onPress={() => router.push("/(admin)/agent-form")}
-                      />
-                    </View>
-                  </>
-                ) : (
-                  <View style={styles.offlineBox}>
-                    <CheckCircle2 color={THEME.colors.textMuted} size={24} />
-                    <Text style={styles.offlineMsg}>
-                      Agent ended shift. No active tasks.
+                <View style={styles.agentInfo}>
+                  <Text style={styles.agentName}>{agent.name}</Text>
+                  <View style={styles.statusRow}>
+                    <Circle color={iconColor} fill={iconColor} size={10} />
+                    <Text style={styles.statusText}>{agent.status_label}</Text>
+                    <Text style={styles.licenseText}>
+                      {" "}
+                      • {agent.license_id}
                     </Text>
                   </View>
-                )}
+                </View>
+
+                <TouchableOpacity style={styles.callBtn}>
+                  <Phone color={THEME.colors.primary} size={20} />
+                </TouchableOpacity>
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
+
+              {expandedId === agent.id && (
+                <View style={styles.expandedSection}>
+                  <View style={styles.divider} />
+                  <Text style={styles.detailLabel}>Contact</Text>
+                  <Text style={styles.detailValue}>{agent.phone}</Text>
+                  {agent.base_zone ? (
+                    <>
+                      <Text style={[styles.detailLabel, { marginTop: 8 }]}>
+                        Base zone
+                      </Text>
+                      <Text style={styles.detailValue}>{agent.base_zone}</Text>
+                    </>
+                  ) : null}
+                  {agent.vehicle_plate ? (
+                    <>
+                      <Text style={[styles.detailLabel, { marginTop: 8 }]}>
+                        Vehicle
+                      </Text>
+                      <Text style={styles.detailValue}>
+                        {agent.vehicle_plate}
+                      </Text>
+                    </>
+                  ) : null}
+
+                  <View style={styles.actionGrid}>
+                    <Button
+                      title="Edit Profile"
+                      icon={<Edit3 color={THEME.colors.surface} size={16} />}
+                      style={{
+                        flex: 1,
+                        backgroundColor: THEME.colors.secondary,
+                        paddingVertical: 10,
+                      }}
+                      textStyle={{ fontSize: 13 }}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(admin)/agent-form",
+                          params: { id: String(agent.id) },
+                        })
+                      }
+                    />
+                    <Button
+                      title="Remove"
+                      style={{
+                        flex: 1,
+                        backgroundColor: THEME.colors.error,
+                        paddingVertical: 10,
+                      }}
+                      textStyle={{ fontSize: 13 }}
+                      onPress={() => handleDelete(agent)}
+                    />
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -222,6 +285,11 @@ const styles = StyleSheet.create({
     fontSize: THEME.sizes.sm,
     color: THEME.colors.textMuted,
     fontWeight: "600",
+  },
+  addButton: {
+    backgroundColor: THEME.colors.primary,
+    padding: 10,
+    borderRadius: 12,
   },
   filterScroll: {
     flexGrow: 0,
@@ -284,6 +352,7 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   statusText: {
     fontSize: THEME.sizes.xs,
@@ -291,7 +360,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: 6,
   },
-  taskCount: {
+  licenseText: {
     fontSize: THEME.sizes.xs,
     color: THEME.colors.textMuted,
   },
@@ -313,32 +382,24 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: THEME.colors.textMuted,
     textTransform: "uppercase",
-    marginBottom: 8,
   },
-  objectiveBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: THEME.sizes.spacingLg,
-  },
-  objectiveText: {
+  detailValue: {
     fontSize: THEME.sizes.sm,
-    fontWeight: "600",
-    color: THEME.colors.primary,
+    color: THEME.colors.text,
+    marginTop: 4,
   },
   actionGrid: {
     flexDirection: "row",
     gap: 12,
+    marginTop: THEME.sizes.spacingLg,
   },
-  offlineBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
+  errorText: {
+    color: THEME.colors.error,
+    marginBottom: THEME.sizes.spacing,
   },
-  offlineMsg: {
-    fontSize: THEME.sizes.sm,
-    color: THEME.colors.textLight,
+  emptyText: {
+    textAlign: "center",
+    color: THEME.colors.textMuted,
+    marginTop: THEME.sizes.spacingXl,
   },
 });

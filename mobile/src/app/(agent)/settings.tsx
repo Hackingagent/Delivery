@@ -1,18 +1,20 @@
 import { Button } from "@/components/Button";
 import { THEME } from "@/constants/theme";
+import { useAgentAuth } from "@/contexts/AgentAuthContext";
 import { useRouter } from "expo-router";
 import { Bell, LogOut, Shield, User } from "lucide-react-native";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AgentSettingsScreen() {
   const router = useRouter();
+  const { agent, logout } = useAgentAuth();
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right"]}>
@@ -24,8 +26,10 @@ export default function AgentSettingsScreen() {
           <View style={styles.avatar}>
             <User color={THEME.colors.surface} size={40} />
           </View>
-          <Text style={styles.name}>Jude Courier</Text>
-          <Text style={styles.license}>License ID: BAM-DL-9821</Text>
+          <Text style={styles.name}>{agent?.name ?? "Courier"}</Text>
+          <Text style={styles.license}>
+            License ID: {agent?.license_id ?? "—"}
+          </Text>
         </View>
 
         <Text style={styles.sectionTitle}>Account Setup</Text>
@@ -33,7 +37,7 @@ export default function AgentSettingsScreen() {
         <View style={styles.settingsGroup}>
           <TouchableOpacity style={styles.settingItem}>
             <Shield color={THEME.colors.secondary} size={24} />
-            <Text style={styles.settingText}>Change Password</Text>
+            <Text style={styles.settingText}>Change PIN</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity style={styles.settingItem}>
@@ -47,7 +51,10 @@ export default function AgentSettingsScreen() {
           icon={<LogOut color={THEME.colors.error} size={20} />}
           style={styles.logoutBtn}
           textStyle={{ color: THEME.colors.error }}
-          onPress={() => router.replace("/(auth)/login")}
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/agent-login");
+          }}
         />
       </ScrollView>
     </SafeAreaView>
@@ -113,10 +120,10 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: THEME.colors.borderLight,
-    marginLeft: 56, // Align with text after icon
+    marginLeft: 56,
   },
   logoutBtn: {
-    backgroundColor: THEME.colors.error + "1A", // light red background
+    backgroundColor: THEME.colors.error + "1A",
     marginBottom: THEME.sizes.spacingXl,
   },
 });

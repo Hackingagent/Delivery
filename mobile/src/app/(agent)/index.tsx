@@ -1,4 +1,5 @@
 import { THEME } from "@/constants/theme";
+import { useAgentAuth } from "@/contexts/AgentAuthContext";
 import { useRouter } from "expo-router";
 import { ArrowRight, Clock, MapPin, Package } from "lucide-react-native";
 import { useState } from "react";
@@ -14,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AgentDashboardScreen() {
   const router = useRouter();
+  const { agent } = useAgentAuth();
   const [isOnline, setIsOnline] = useState(true);
 
   const pendingTasks = [
@@ -45,7 +47,9 @@ export default function AgentDashboardScreen() {
       >
         <View style={styles.statusHeader}>
           <View>
-            <Text style={styles.greeting}>Hello, Jude!</Text>
+            <Text style={styles.greeting}>
+              Hello, {agent?.name?.split(" ")[0] ?? "Courier"}!
+            </Text>
             <Text style={styles.statusText}>
               {isOnline
                 ? "You are online and seeking requests"

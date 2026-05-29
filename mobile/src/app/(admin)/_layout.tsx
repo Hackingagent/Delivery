@@ -1,10 +1,34 @@
 import { THEME } from "@/constants/theme";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { Tabs, useRouter } from "expo-router";
 import { BarChart3, Menu, PackageOpen, Users } from "lucide-react-native";
-import { Platform, TouchableOpacity } from "react-native";
+import { useEffect } from "react";
+import { ActivityIndicator, Platform, TouchableOpacity, View } from "react-native";
 
 export default function AdminLayout() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAdminAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/(auth)/admin-login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: THEME.colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={THEME.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <Tabs
@@ -64,6 +88,12 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => (
             <PackageOpen color={color} size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="agent-form"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

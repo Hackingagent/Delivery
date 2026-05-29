@@ -1,4 +1,5 @@
 import { THEME } from "@/constants/theme";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useRouter } from "expo-router";
 import {
     Briefcase,
@@ -28,6 +29,7 @@ const DRAWER_WIDTH = width * 0.85;
 
 export default function AdminMenuScreen() {
   const router = useRouter();
+  const { admin, logout } = useAdminAuth();
 
   // Animation values
   const [slideAnim] = useState(new Animated.Value(-DRAWER_WIDTH));
@@ -115,8 +117,8 @@ export default function AdminMenuScreen() {
                 <Shield color={THEME.colors.surface} size={28} />
               </View>
               <View style={styles.profileInfo}>
-                <Text style={styles.name}>Super Admin</Text>
-                <Text style={styles.phone}>Control Center</Text>
+                <Text style={styles.name}>{admin?.name ?? "Super Admin"}</Text>
+                <Text style={styles.phone}>{admin?.email ?? "Control Center"}</Text>
               </View>
             </View>
 
@@ -170,7 +172,12 @@ export default function AdminMenuScreen() {
               icon={<LogOut color={THEME.colors.error} size={22} />}
               label="Logout Admin"
               isDanger
-              onPress={() => handleNavigate("login")}
+              onPress={() =>
+                closeMenu(async () => {
+                  await logout();
+                  router.replace("/(auth)/admin-login");
+                })
+              }
             />
           </View>
         </SafeAreaView>

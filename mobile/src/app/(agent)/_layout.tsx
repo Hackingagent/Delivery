@@ -1,4 +1,5 @@
 import { THEME } from "@/constants/theme";
+import { useAgentAuth } from "@/contexts/AgentAuthContext";
 import { Tabs, useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -6,17 +7,45 @@ import {
   BriefcaseBusiness,
   Settings,
 } from "lucide-react-native";
-import { Platform, TouchableOpacity } from "react-native";
+import { useEffect } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function AgentLayout() {
   const router = useRouter();
+  const { isAuthenticated, isLoading, logout } = useAgentAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/(auth)/agent-login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: THEME.colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={THEME.colors.secondary} />
+      </View>
+    );
+  }
 
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: THEME.colors.secondary, // Dark header for agents
+          backgroundColor: THEME.colors.secondary,
         },
         headerTintColor: THEME.colors.surface,
         headerTitleStyle: {
@@ -24,7 +53,10 @@ export default function AgentLayout() {
         },
         headerLeft: () => (
           <TouchableOpacity
-            onPress={() => router.replace("/(auth)/login")}
+            onPress={async () => {
+              await logout();
+              router.replace("/(auth)/agent-login");
+            }}
             style={{ paddingHorizontal: 16 }}
           >
             <ArrowLeft color={THEME.colors.surface} size={24} />
@@ -86,7 +118,7 @@ export default function AgentLayout() {
           href: null,
           title: "Package Proof",
           headerShown: false,
-          tabBarStyle: { display: "none" }, // Hide tab bar when using camera
+          tabBarStyle: { display: "none" },
         }}
       />
     </Tabs>
