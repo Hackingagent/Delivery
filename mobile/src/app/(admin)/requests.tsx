@@ -1,7 +1,8 @@
 import { Button } from "@/components/Button";
 import { THEME } from "@/constants/theme";
-import { MapPin, PackageOpen, Users, X } from "lucide-react-native";
+import { MapPin, PackageOpen, Users, X, Map } from "lucide-react-native";
 import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
     ActivityIndicator,
     Alert,
@@ -16,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest } from "@/lib/api";
 
 export default function AdminRequestsScreen() {
+  const router = useRouter();
   const [activeRequest, setActiveRequest] = useState<number | null>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
@@ -178,6 +180,16 @@ export default function AdminRequestsScreen() {
                           {req.agent?.name || "Unknown Agent"}
                         </Text>
                       </View>
+                      <Button
+                        title="Track"
+                        style={{
+                          flex: 0.5,
+                          backgroundColor: THEME.colors.secondary,
+                          paddingVertical: 12,
+                        }}
+                        textStyle={{ fontSize: 14 }}
+                        onPress={() => router.push(`/track/${req.id}`)}
+                      />
                     </View>
                   )}
                 </View>

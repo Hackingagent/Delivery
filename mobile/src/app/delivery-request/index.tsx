@@ -39,7 +39,7 @@ export default function DeliveryRequestScreen() {
 
     setCalculating(true);
     try {
-        const response = await apiRequest("/delivery-requests", {
+        const response = await apiRequest<any>("/delivery-requests", {
             method: "POST",
             auth: "user",
             body: JSON.stringify({
@@ -50,8 +50,15 @@ export default function DeliveryRequestScreen() {
             }),
         });
 
-        Alert.alert("Success", "Delivery request created successfully.");
-        router.replace("/(tabs)/activity");
+        const trackingId = response.request.id;
+        Alert.alert(
+            "Request Created", 
+            `Your delivery request has been submitted. Tracking ID: BAM-${trackingId}`,
+            [
+                { text: "Go Home", onPress: () => router.replace("/(tabs)") },
+                { text: "Track Now", onPress: () => router.push(`/track/${trackingId}`) }
+            ]
+        );
     } catch (error: any) {
         Alert.alert("Error", error.message || "Failed to create delivery request.");
     } finally {

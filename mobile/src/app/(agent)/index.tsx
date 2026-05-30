@@ -2,8 +2,11 @@ import { THEME } from "@/constants/theme";
 import { useAgentAuth } from "@/contexts/AgentAuthContext";
 import { useRouter } from "expo-router";
 import { ArrowRight, Clock, MapPin, Package } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,38 +15,46 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest } from "@/lib/api";
 
 export default function AgentDashboardScreen() {
   const router = useRouter();
   const { agent } = useAgentAuth();
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(agent?.status === 'online');
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const pendingTasks = [
-    {
-      id: "BAM-1042",
-      type: "Food",
-      from: "Commercial Avenue",
-      to: "Nkwen",
-      time: "ASAP",
-      distance: "4.2 km",
-      pay: "1,500 FCFA",
-    },
-    {
-      id: "BAM-1088",
-      type: "Document",
-      from: "Hospital Roundabout",
-      to: "Up Station",
-      time: "by 2:00 PM",
-      distance: "2.1 km",
-      pay: "800 FCFA",
-    },
-  ];
+  useEffect(() => {
+    fetchDeliveries();
+  }, []);
+
+  const fetchDeliveries = async () => {
+    setLoading(true);
+    try {
+      const response = await apiRequest<any>("/agent/deliveries", { auth: "agent" });
+      setDeliveries(response.data || []);
+    } catch (error: any) {
+      Alert.alert("Error", "Failed to fetch deliveries: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchDeliveries();
+    setRefreshing(false);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <View style={styles.statusHeader}>
           <View>
@@ -68,20 +79,20 @@ export default function AgentDashboardScreen() {
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>14</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statValue}>{deliveries.filter(d => d.status === 'delivered').length}</Text>
+            <Text style={styles.statLabel}>Current Session</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>4.9★</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>22k</Text>
-            <Text style={styles.statLabel}>Earned (FCFA)</Text>
+            <Text style={styles.statValue}>{(deliveries.filter(d => d.status === 'delivered').length * 1500).toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Earnings (FCFA)</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Available Tasks (2)</Text>
+        <Text style={styles.sectionTitle}>Your Active Tasks ({deliveries.length})</Text>
 
         {!isOnline ? (
           <View style={styles.offlineBox}>
@@ -89,8 +100,18 @@ export default function AgentDashboardScreen() {
               Go online to see pending requests.
             </Text>
           </View>
+        ) : loading ? (
+          <View style={{ marginTop: 40 }}>
+            <ActivityIndicator size="large" color={THEME.colors.primary} />
+          </View>
+        ) : deliveries.length === 0 ? (
+          <View style={styles.offlineBox}>
+            <Text style={styles.offlineText}>
+              No active tasks assigned to you.
+            </Text>
+          </View>
         ) : (
-          pendingTasks.map((task) => (
+          deliveries.map((task) => (
             <TouchableOpacity
               key={task.id}
               style={styles.taskCard}
@@ -100,35 +121,34 @@ export default function AgentDashboardScreen() {
               <View style={styles.taskHeader}>
                 <View style={styles.tagBox}>
                   <Package color={THEME.colors.primary} size={14} />
-                  <Text style={styles.tagText}>{task.type}</Text>
+                  <Text style={styles.tagText}>{task.package_details}</Text>
                 </View>
-                <Text style={styles.payText}>{task.pay}</Text>
+                <Text style={styles.payText}>{Number(task.fare).toLocaleString()} FCFA</Text>
               </View>
 
               <View style={styles.locationGroup}>
                 <View style={styles.locationRow}>
                   <View style={styles.dotOrigin} />
-                  <Text style={styles.locationText}>{task.from}</Text>
+                  <Text style={styles.locationText}>{task.pickup_location}</Text>
                 </View>
                 <View style={styles.locationLine} />
                 <View style={styles.locationRow}>
                   <View style={styles.dotDest} />
                   <Text style={styles.locationText} numberOfLines={1}>
-                    {task.to}
+                    {task.dropoff_location}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.taskFooter}>
-                <View style={styles.footerInfo}>
-                  <Clock color={THEME.colors.textMuted} size={14} />
-                  <Text style={styles.footerText}>{task.time}</Text>
-                  <MapPin
-                    color={THEME.colors.textMuted}
-                    size={14}
-                    style={{ marginLeft: 12 }}
-                  />
-                  <Text style={styles.footerText}>{task.distance}</Text>
+                <View style={[styles.statusBadge, { 
+                  backgroundColor: task.status === 'in_transit' ? THEME.colors.primary + '20' : THEME.colors.secondary + '20'
+                }]}>
+                  <Text style={[styles.statusTextBadge, { 
+                    color: task.status === 'in_transit' ? THEME.colors.primary : THEME.colors.secondary
+                  }]}>
+                    {task.status.replace('_', ' ').toUpperCase()}
+                  </Text>
                 </View>
                 <ArrowRight color={THEME.colors.secondary} size={20} />
               </View>
@@ -176,7 +196,7 @@ const styles = StyleSheet.create({
   statBox: {
     flex: 1,
     backgroundColor: THEME.colors.surface,
-    paddingVertical: THEME.sizes.spacingMd,
+    paddingVertical: THEME.sizes.spacing,
     borderRadius: THEME.sizes.radiusMd,
     alignItems: "center",
     marginHorizontal: 4,
@@ -191,6 +211,15 @@ const styles = StyleSheet.create({
     fontSize: THEME.sizes.xs,
     color: THEME.colors.textLight,
     marginTop: 4,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusTextBadge: {
+    fontSize: 10,
+    fontWeight: "800",
   },
   sectionTitle: {
     fontSize: THEME.sizes.lg,
@@ -285,7 +314,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: THEME.colors.borderLight,
-    paddingTop: THEME.sizes.spacingMd,
+    paddingTop: THEME.sizes.spacing,
   },
   footerInfo: {
     flexDirection: "row",

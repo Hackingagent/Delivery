@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { Crosshair, Menu, Package, Search } from "lucide-react-native";
 import { useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { Marker } from "react-native-maps";
 
 const INITIAL_REGION = {
   latitude: 5.9631,
@@ -28,7 +29,24 @@ export default function DashboardMapScreen() {
   return (
     <View style={styles.container}>
       {/* Background Map extracted for Web compatibility */}
-      <BAMap ref={mapRef} initialRegion={INITIAL_REGION} mapStyle={mapStyle} />
+      <BAMap ref={mapRef} initialRegion={INITIAL_REGION} mapStyle={mapStyle}>
+        <Marker coordinate={{ latitude: 5.961, longitude: 10.155 }}>
+          <View style={styles.driverMarkerContainer}>
+            <View style={styles.driverMarker}>
+              <Text style={styles.driverMarkerText}>🏍️</Text>
+            </View>
+            <View style={styles.driverMarkerTriangle} />
+          </View>
+        </Marker>
+        <Marker coordinate={{ latitude: 5.965, longitude: 10.162 }}>
+          <View style={styles.driverMarkerContainer}>
+            <View style={styles.driverMarker}>
+              <Text style={styles.driverMarkerText}>🚲</Text>
+            </View>
+            <View style={styles.driverMarkerTriangle} />
+          </View>
+        </Marker>
+      </BAMap>
 
       {/* Floating Header */}
       <View style={styles.headerContainer}>

@@ -38,6 +38,9 @@ class Agent extends Authenticatable
         'avatar_path',
         'is_active',
         'last_login_at',
+        'current_lat',
+        'current_lng',
+        'last_location_update_at',
     ];
 
     protected $hidden = [

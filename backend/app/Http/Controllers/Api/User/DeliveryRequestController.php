@@ -19,6 +19,17 @@ class DeliveryRequestController extends Controller
         return response()->json($requests);
     }
 
+    public function show(Request $request, $id)
+    {
+        $deliveryRequest = DeliveryRequest::where('user_id', $request->attributes->get('user')->id)
+            ->with('agent')
+            ->findOrFail($id);
+
+        return response()->json([
+            'data' => $deliveryRequest
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [

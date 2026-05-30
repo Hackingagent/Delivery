@@ -14,14 +14,7 @@ export const BAMap = forwardRef<MapView, any>((props, ref) => {
       provider={PROVIDER_DEFAULT}
       customMapStyle={props.mapStyle}
     >
-      <Marker coordinate={{ latitude: 5.961, longitude: 10.155 }}>
-        <View style={styles.driverMarkerContainer}>
-          <View style={styles.driverMarker}>
-            <Text style={styles.driverMarkerText}>🏍️</Text>
-          </View>
-          <View style={styles.driverMarkerTriangle} />
-        </View>
-      </Marker>
+      {props.children}
     </MapView>
   );
 });

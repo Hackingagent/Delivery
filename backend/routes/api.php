@@ -19,6 +19,7 @@ Route::middleware(AuthenticateUser::class)->group(function () {
     Route::post('logout', [UserAuthController::class, 'logout']);
 
     Route::get('delivery-requests', [UserDeliveryRequestController::class, 'index']);
+    Route::get('delivery-requests/{id}', [UserDeliveryRequestController::class, 'show']);
     Route::post('delivery-requests', [UserDeliveryRequestController::class, 'store']);
 });
 
@@ -36,11 +37,18 @@ Route::prefix('admin')->group(function () {
     });
 });
 
+use App\Http\Controllers\Api\Agent\DeliveryController as AgentDeliveryController;
+
 Route::prefix('agent')->group(function () {
     Route::post('login', [AgentAuthController::class, 'login']);
 
     Route::middleware(AuthenticateAgent::class)->group(function () {
         Route::get('me', [AgentAuthController::class, 'me']);
         Route::post('logout', [AgentAuthController::class, 'logout']);
+
+        Route::get('deliveries', [AgentDeliveryController::class, 'index']);
+        Route::post('deliveries/{id}/pickup', [AgentDeliveryController::class, 'pickup']);
+        Route::post('deliveries/{id}/deliver', [AgentDeliveryController::class, 'deliver']);
+        Route::post('location', [AgentDeliveryController::class, 'updateLocation']);
     });
 });

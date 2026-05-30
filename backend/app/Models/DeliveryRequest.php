@@ -19,7 +19,22 @@ class DeliveryRequest extends Model
         'assigned_at',
         'picked_up_at',
         'delivered_at',
+        'pickup_image_path',
+        'delivery_image_path',
     ];
+
+    protected $appends = ['pickup_image_url', 'delivery_image_url'];
+
+    public function getPickupImageUrlAttribute()
+    {
+        return $this->pickup_image_path ? asset('storage/' . $this->pickup_image_path) : null;
+    }
+
+    public function getDeliveryImageUrlAttribute()
+    {
+        return $this->delivery_image_path ? asset('storage/' . $this->delivery_image_path) : null;
+    }
+
 
     protected $casts = [
         'fare' => 'decimal:2',

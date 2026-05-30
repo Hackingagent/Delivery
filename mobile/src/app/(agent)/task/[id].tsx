@@ -1,210 +1,206 @@
 import { Button } from "@/components/Button";
 import { THEME } from "@/constants/theme";
+import { apiRequest } from "@/lib/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Camera, CheckCircle, MapPin, Package } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
-    Camera,
-    CheckCircle2,
-    MapPin,
-    MessageSquare,
-    Navigation,
-    Phone,
-} from "lucide-react-native";
-import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from 'expo-image-picker';
 
-export default function AgentTaskScreen() {
+export default function AgentTaskDetailScreen() {
+  const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { id, status } = useLocalSearchParams();
+  const [delivery, setDelivery] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  // Statuses: undefined/empty -> accepted -> picked_up -> delivered
-  const currentStatus = (status as string) || "pending";
+  useEffect(() => {
+    fetchDelivery();
+    
+    let locationInterval: any;
+    if (delivery?.status === 'in_transit') {
+      locationInterval = setInterval(simulateLocationUpdate, 15000);
+    }
 
-  if (currentStatus === "delivered") {
+    return () => {
+      if (locationInterval) clearInterval(locationInterval);
+    };
+  }, [id, delivery?.status]);
+
+  const simulateLocationUpdate = async () => {
+    try {
+      // Small random movement for simulation
+      const lat = 5.9631 + (Math.random() - 0.5) * 0.01;
+      const lng = 10.1591 + (Math.random() - 0.5) * 0.01;
+      
+      await apiRequest("/agent/location", {
+        method: "POST",
+        auth: "agent",
+        body: JSON.stringify({ lat, lng }),
+      });
+    } catch (e) {
+      console.error("Location update failed", e);
+    }
+  };
+
+  const fetchDelivery = async () => {
+    setLoading(true);
+    try {
+      // Re-using the index response for now or we could implement a show endpoint
+      const response = await apiRequest<any>("/agent/deliveries", { auth: "agent" });
+      const found = response.data.find((d: any) => d.id.toString() === id);
+      setDelivery(found);
+    } catch (error: any) {
+      Alert.alert("Error", "Failed to fetch delivery details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (status: 'pickup' | 'deliver') => {
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    if (cameraStatus !== 'granted') {
+      Alert.alert("Permission Error", "Camera access is required for proof of delivery.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      const image = result.assets[0];
+      setUpdating(true);
+
+      const formData = new FormData();
+      formData.append(status === 'pickup' ? 'pickup_image' : 'delivery_image', {
+        uri: image.uri,
+        name: `photo_${status}.jpg`,
+        type: 'image/jpeg',
+      } as any);
+
+      try {
+        await apiRequest(`/agent/deliveries/${id}/${status}`, {
+          method: "POST",
+          auth: "agent",
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        Alert.alert("Success", `Status updated to ${status === 'pickup' ? 'In Transit' : 'Delivered'}.`);
+        fetchDelivery();
+      } catch (error: any) {
+        Alert.alert("Update Failed", error.message || "Failed to update status.");
+      } finally {
+        setUpdating(false);
+      }
+    }
+  };
+
+  if (loading) {
     return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <CheckCircle2
-          color={THEME.colors.success}
-          size={100}
-          style={{ marginBottom: 24 }}
-        />
-        <Text
-          style={[
-            styles.cardTitle,
-            { fontSize: 24, alignSelf: "center", color: THEME.colors.text },
-          ]}
-        >
-          TASK COMPLETED
-        </Text>
-        <Text
-          style={{
-            textAlign: "center",
-            color: THEME.colors.textMuted,
-            marginTop: 12,
-            marginBottom: 40,
-            paddingHorizontal: 32,
-          }}
-        >
-          You have successfully delivered order {id}. Your payment of 1,500 FCFA
-          has been credited.
-        </Text>
-        <Button
-          title="Return to Dashboard"
-          onPress={() => router.replace("/(agent)/")}
-          style={{ width: "80%", backgroundColor: THEME.colors.secondary }}
-        />
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={THEME.colors.primary} />
+      </View>
+    );
+  }
+
+  if (!delivery) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Task not found or unauthorized.</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Progress Timeline Header */}
-        <View style={styles.progressHeader}>
-          <Text style={styles.taskId}>Order {id || "BAM-1042"}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>
-              {currentStatus === "pending"
-                ? "NEW REQUEST"
-                : currentStatus === "accepted"
-                  ? "AWAITING PICKUP"
-                  : "IN TRANSIT"}
+    <SafeAreaView style={styles.container} edges={["left", "right"]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.idText}>Request #{delivery.id}</Text>
+          <View style={[styles.statusBadge, { 
+            backgroundColor: delivery.status === 'in_transit' ? THEME.colors.primary + '20' : THEME.colors.secondary + '20'
+          }]}>
+            <Text style={[styles.statusText, { 
+              color: delivery.status === 'in_transit' ? THEME.colors.primary : THEME.colors.secondary
+            }]}>
+              {delivery.status.replace('_', ' ').toUpperCase()}
             </Text>
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pickup Details</Text>
-          <View style={styles.addressBox}>
-            <MapPin color={THEME.colors.primary} size={20} />
-            <Text style={styles.addressText}>
-              Commercial Avenue, Ntarinkon Board
-            </Text>
+          <Text style={styles.label}>Customer Details</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.userName}>{delivery.user?.name}</Text>
+            <Text style={styles.userPhone}>{delivery.user?.phone}</Text>
           </View>
-          <Text style={styles.subtext}>Sender: John Doe</Text>
-
-          {(currentStatus === "accepted" || currentStatus === "pending") && (
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.actionBtn}>
-                <Phone color={THEME.colors.secondary} size={18} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn}>
-                <MessageSquare color={THEME.colors.secondary} size={18} />
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
 
-        <View
-          style={[styles.card, currentStatus === "pending" && { opacity: 0.6 }]}
-        >
-          <Text style={styles.cardTitle}>Drop-off Details</Text>
-          <View style={styles.addressBox}>
-            <MapPin color={THEME.colors.secondary} size={20} />
-            <Text style={styles.addressText}>
-              Nkwen, Opposite Total Station
-            </Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>Package Info</Text>
+          <View style={styles.pkgRow}>
+            <Package color={THEME.colors.primary} size={20} />
+            <Text style={styles.pkgText}>{delivery.package_details}</Text>
           </View>
-          <Text style={styles.subtext}>Receiver: Jane Smith</Text>
+        </View>
 
-          {currentStatus === "picked_up" && (
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.actionBtn}>
-                <Phone color={THEME.colors.secondary} size={18} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn}>
-                <MessageSquare color={THEME.colors.secondary} size={18} />
-              </TouchableOpacity>
+        <View style={styles.card}>
+          <Text style={styles.label}>Route</Text>
+          <View style={styles.locationGroup}>
+            <View style={styles.locationRow}>
+              <View style={styles.dotOrigin} />
+              <Text style={styles.locationText}>{delivery.pickup_location}</Text>
             </View>
-          )}
+            <View style={styles.locationLine} />
+            <View style={styles.locationRow}>
+              <View style={styles.dotDest} />
+              <Text style={styles.locationText}>{delivery.dropoff_location}</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.instructionsCard}>
-          <Text style={styles.cardTitle}>Special Instructions</Text>
-          <Text style={styles.subtext}>
-            Package is fragile (Electronics). Please handle with care. Wait at
-            the gate.
-          </Text>
-        </View>
-      </ScrollView>
-
-      {/* Dynamic Footer Actions Based on State */}
-      <View style={styles.footer}>
-        {currentStatus === "pending" && (
+        {delivery.status === 'assigned' && (
           <Button
-            title="Accept Request"
-            style={{ backgroundColor: THEME.colors.secondary }}
-            onPress={() =>
-              router.replace({
-                pathname: "/(agent)/task/BAM-1042",
-                params: { status: "accepted" },
-              })
-            }
+            title="Confirm Pick Up"
+            loading={updating}
+            icon={<Camera color={THEME.colors.surface} size={20} />}
+            onPress={() => handleUpdateStatus('pickup')}
+            style={styles.actionButton}
           />
         )}
 
-        {currentStatus === "accepted" && (
-          <View style={{ gap: 12 }}>
-            <Button
-              title="Navigate to Pickup"
-              icon={<Navigation color={THEME.colors.text} size={20} />}
-              type="outline"
-            />
-            <Button
-              title="Verify Pickup (Snap Package)"
-              icon={<Camera color={THEME.colors.surface} size={20} />}
-              style={{ backgroundColor: THEME.colors.secondary }}
-              onPress={() =>
-                router.push({
-                  pathname: "/(agent)/camera",
-                  params: {
-                    returnTo: "/(agent)/task/BAM-1042",
-                    nextStatus: "picked_up",
-                  },
-                })
-              }
-            />
-          </View>
+        {delivery.status === 'in_transit' && (
+          <Button
+            title="Mark Delivered"
+            loading={updating}
+            icon={<CheckCircle color={THEME.colors.surface} size={20} />}
+            onPress={() => handleUpdateStatus('deliver')}
+            style={{ ...styles.actionButton, backgroundColor: THEME.colors.success }}
+          />
         )}
 
-        {currentStatus === "picked_up" && (
-          <View style={{ gap: 12 }}>
-            <Button
-              title="Navigate to Dropoff"
-              icon={<Navigation color={THEME.colors.text} size={20} />}
-              type="outline"
-            />
-            <Button
-              title="Verify Delivery (Snap Package)"
-              icon={<Camera color={THEME.colors.surface} size={20} />}
-              style={{ backgroundColor: THEME.colors.success }}
-              onPress={() =>
-                router.push({
-                  pathname: "/(agent)/camera",
-                  params: {
-                    returnTo: "/(agent)/task/BAM-1042",
-                    nextStatus: "delivered",
-                  },
-                })
-              }
-            />
+        {delivery.status === 'delivered' && (
+          <View style={styles.completedBox}>
+            <CheckCircle color={THEME.colors.success} size={32} />
+            <Text style={styles.completedText}>Delivery Completed</Text>
           </View>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -214,87 +210,116 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME.colors.background,
   },
-  scrollContent: {
-    padding: THEME.sizes.spacingLg,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  progressHeader: {
+  scrollContent: {
+    padding: 20,
+  },
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: THEME.sizes.spacingXl,
+    marginBottom: 24,
   },
-  taskId: {
-    fontSize: THEME.sizes.xl,
+  idText: {
+    fontSize: 22,
     fontWeight: "800",
     color: THEME.colors.text,
   },
   statusBadge: {
-    backgroundColor: THEME.colors.secondary + "1A",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 20,
   },
-  statusBadgeText: {
-    color: THEME.colors.secondary,
+  statusText: {
+    fontSize: 12,
     fontWeight: "700",
-    fontSize: THEME.sizes.sm,
   },
   card: {
     backgroundColor: THEME.colors.surface,
-    padding: THEME.sizes.spacingLg,
-    borderRadius: THEME.sizes.radiusLg,
-    marginBottom: THEME.sizes.spacingLg,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
     ...THEME.shadows.small,
   },
-  cardTitle: {
-    fontSize: THEME.sizes.sm,
+  label: {
+    fontSize: 12,
     fontWeight: "700",
     color: THEME.colors.textMuted,
     textTransform: "uppercase",
-    marginBottom: THEME.sizes.spacing,
+    marginBottom: 12,
   },
-  addressBox: {
+  infoRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 8,
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  addressText: {
-    fontSize: THEME.sizes.md,
+  userName: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  userPhone: {
+    fontSize: 14,
+    color: THEME.colors.primary,
     fontWeight: "600",
-    color: THEME.colors.text,
-    flex: 1,
-    lineHeight: 22,
   },
-  subtext: {
-    fontSize: THEME.sizes.sm,
-    color: THEME.colors.textLight,
-    paddingLeft: 32,
-  },
-  actionRow: {
+  pkgRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 12,
-    marginTop: THEME.sizes.spacing,
-    paddingLeft: 32,
   },
-  actionBtn: {
-    padding: 10,
-    borderRadius: THEME.sizes.radiusMd,
-    backgroundColor: THEME.colors.background,
-    borderWidth: 1,
-    borderColor: THEME.colors.borderLight,
+  pkgText: {
+    fontSize: 16,
+    color: THEME.colors.text,
   },
-  instructionsCard: {
-    backgroundColor: THEME.colors.primary + "1A", // Light orange
-    padding: THEME.sizes.spacingLg,
-    borderRadius: THEME.sizes.radiusLg,
-    marginBottom: THEME.sizes.spacingXl,
+  locationGroup: {
+    marginTop: 8,
   },
-  footer: {
-    padding: THEME.sizes.spacingLg,
-    backgroundColor: THEME.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: THEME.colors.borderLight,
-    paddingBottom: 40,
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dotOrigin: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: THEME.colors.primary,
+    marginRight: 12,
+  },
+  dotDest: {
+    width: 10,
+    height: 10,
+    borderWidth: 2,
+    borderColor: THEME.colors.secondary,
+    marginRight: 12,
+  },
+  locationLine: {
+    width: 2,
+    height: 20,
+    backgroundColor: THEME.colors.border,
+    marginLeft: 4,
+    marginVertical: 2,
+  },
+  locationText: {
+    fontSize: 15,
+    color: THEME.colors.text,
+    fontWeight: "500",
+  },
+  actionButton: {
+    marginTop: 20,
+    height: 56,
+  },
+  completedBox: {
+    marginTop: 40,
+    alignItems: "center",
+    gap: 12,
+  },
+  completedText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: THEME.colors.success,
   },
 });

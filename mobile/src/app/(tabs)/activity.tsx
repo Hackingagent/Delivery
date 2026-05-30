@@ -100,15 +100,18 @@ export default function ActivityScreen() {
                     <Clock color={THEME.colors.textLight} size={16} />
                     <Text style={styles.dateText}>{formatDate(delivery.created_at)}</Text>
                   </View>
-                  <Text
-                    style={[
-                      styles.priceText,
-                      delivery.status === "cancelled" &&
-                        styles.priceTextCancelled,
-                    ]}
-                  >
-                    {formatCurrency(delivery.fare)}
-                  </Text>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: THEME.colors.primary }}>BAM-{delivery.id}</Text>
+                    <Text
+                      style={[
+                        styles.priceText,
+                        delivery.status === "cancelled" &&
+                          styles.priceTextCancelled,
+                      ]}
+                    >
+                      {formatCurrency(delivery.fare)}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.routeContainer}>

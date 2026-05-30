@@ -76,7 +76,7 @@ export const styles = StyleSheet.create({
     backgroundColor: THEME.colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: THEME.sizes.spacingMd,
+    marginRight: THEME.sizes.spacing,
   },
   driverInitials: {
     color: THEME.colors.surface,
@@ -133,7 +133,7 @@ export const styles = StyleSheet.create({
   },
   stepTextActiveContainer: {
     backgroundColor: THEME.colors.primary + "10",
-    padding: THEME.sizes.spacingMd,
+    padding: THEME.sizes.spacing,
     borderRadius: THEME.sizes.radiusMd,
     marginTop: -8,
   },
@@ -150,5 +150,32 @@ export const styles = StyleSheet.create({
     fontSize: THEME.sizes.sm,
     color: THEME.colors.textMuted,
     marginTop: 2,
+  },
+  driverMarkerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  driverMarker: {
+    backgroundColor: THEME.colors.surface,
+    padding: 6,
+    borderRadius: 20,
+    ...THEME.shadows.medium,
+  },
+  driverMarkerText: {
+    fontSize: 20,
+  },
+  driverMarkerTriangle: {
+    width: 0,
+    height: 0,
+    backgroundColor: "transparent",
+    borderStyle: "solid",
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 10,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: THEME.colors.surface,
+    transform: [{ rotate: "180deg" }],
+    marginTop: -2,
   },
 });
