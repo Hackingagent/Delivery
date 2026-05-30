@@ -1,8 +1,8 @@
 import { THEME } from "@/constants/theme";
 import { useAgentAuth } from "@/contexts/AgentAuthContext";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowRight, Clock, MapPin, Package } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,9 +25,11 @@ export default function AgentDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchDeliveries();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDeliveries();
+    }, [])
+  );
 
   const fetchDeliveries = async () => {
     setLoading(true);

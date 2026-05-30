@@ -3,60 +3,30 @@ import { THEME } from "@/constants/theme";
 import { apiRequest } from "@/lib/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Camera, CheckCircle, MapPin, Package } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import * as Location from 'expo-location';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from 'expo-image-picker';
 
-export default function AgentTaskDetailScreen() {
+const AgentTaskDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [delivery, setDelivery] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
-  useEffect(() => {
-    fetchDelivery();
-    
-    let locationInterval: any;
-    if (delivery?.status === 'in_transit') {
-      locationInterval = setInterval(simulateLocationUpdate, 15000);
-    }
-
-    return () => {
-      if (locationInterval) clearInterval(locationInterval);
-    };
-  }, [id, delivery?.status]);
-
-  const simulateLocationUpdate = async () => {
-    try {
-      // Small random movement for simulation
-      const lat = 5.9631 + (Math.random() - 0.5) * 0.01;
-      const lng = 10.1591 + (Math.random() - 0.5) * 0.01;
-      
-      await apiRequest("/agent/location", {
-        method: "POST",
-        auth: "agent",
-        body: JSON.stringify({ lat, lng }),
-      });
-    } catch (e) {
-      console.error("Location update failed", e);
-    }
-  };
-
-  const fetchDelivery = async () => {
+  const fetchDelivery = useCallback(async () => {
     setLoading(true);
     try {
-      // Re-using the index response for now or we could implement a show endpoint
       const response = await apiRequest<any>("/agent/deliveries", { auth: "agent" });
       const found = response.data.find((d: any) => d.id.toString() === id);
       setDelivery(found);
@@ -65,7 +35,64 @@ export default function AgentTaskDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  const stopWatchingLocation = useCallback(() => {
+    if (locationSubscription.current) {
+      locationSubscription.current.remove();
+      locationSubscription.current = null;
+    }
+  }, []);
+
+  const startWatchingLocation = useCallback(async () => {
+    try {
+      const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+      if (foregroundStatus !== 'granted') {
+        console.warn('Location permission denied');
+        return;
+      }
+
+      stopWatchingLocation();
+
+      locationSubscription.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 15000,
+          distanceInterval: 10,
+        },
+        async (location) => {
+          const { latitude, longitude } = location.coords;
+          try {
+            await apiRequest("/agent/location", {
+              method: "POST",
+              auth: "agent",
+              body: JSON.stringify({ lat: latitude, lng: longitude }),
+            });
+          } catch (e) {
+            console.error("Failed to report location", e);
+          }
+        }
+      );
+    } catch (e) {
+      console.error("Error starting location watch", e);
+    }
+  }, [stopWatchingLocation]);
+
+  useEffect(() => {
+    fetchDelivery();
+  }, [fetchDelivery]);
+
+  useEffect(() => {
+    if (delivery?.status === 'in_transit') {
+      startWatchingLocation();
+    } else {
+      stopWatchingLocation();
+    }
+
+    return () => {
+      stopWatchingLocation();
+    };
+  }, [delivery?.status, startWatchingLocation, stopWatchingLocation]);
 
   const handleUpdateStatus = async (status: 'pickup' | 'deliver') => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
@@ -102,7 +129,11 @@ export default function AgentTaskDetailScreen() {
           },
         });
         Alert.alert("Success", `Status updated to ${status === 'pickup' ? 'In Transit' : 'Delivered'}.`);
-        fetchDelivery();
+        if (status === 'deliver') {
+          router.replace('/(agent)');
+        } else {
+          fetchDelivery();
+        }
       } catch (error: any) {
         Alert.alert("Update Failed", error.message || "Failed to update status.");
       } finally {
@@ -190,7 +221,7 @@ export default function AgentTaskDetailScreen() {
             loading={updating}
             icon={<CheckCircle color={THEME.colors.surface} size={20} />}
             onPress={() => handleUpdateStatus('deliver')}
-            style={{ ...styles.actionButton, backgroundColor: THEME.colors.success }}
+            style={[styles.actionButton, { backgroundColor: THEME.colors.success }]}
           />
         )}
 
@@ -203,7 +234,7 @@ export default function AgentTaskDetailScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -323,3 +354,5 @@ const styles = StyleSheet.create({
     color: THEME.colors.success,
   },
 });
+
+export default AgentTaskDetailScreen;

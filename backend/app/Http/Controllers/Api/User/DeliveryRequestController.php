@@ -34,7 +34,11 @@ class DeliveryRequestController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'pickup_location' => 'required|string|max:255',
+            'pickup_lat' => 'nullable|numeric',
+            'pickup_lng' => 'nullable|numeric',
             'dropoff_location' => 'required|string|max:255',
+            'dropoff_lat' => 'nullable|numeric',
+            'dropoff_lng' => 'nullable|numeric',
             'package_details' => 'required|string',
             'fare' => 'required|numeric|min:0',
         ]);
@@ -46,7 +50,11 @@ class DeliveryRequestController extends Controller
         $deliveryRequest = DeliveryRequest::create([
             'user_id' => $request->attributes->get('user')->id,
             'pickup_location' => $request->pickup_location,
+            'pickup_lat' => $request->pickup_lat,
+            'pickup_lng' => $request->pickup_lng,
             'dropoff_location' => $request->dropoff_location,
+            'dropoff_lat' => $request->dropoff_lat,
+            'dropoff_lng' => $request->dropoff_lng,
             'package_details' => $request->package_details,
             'fare' => $request->fare,
             'status' => 'pending',

@@ -2,6 +2,7 @@ import { THEME } from "@/constants/theme";
 import React from "react";
 import {
     ActivityIndicator,
+    StyleProp,
     Text,
     TextStyle,
     TouchableOpacity,
@@ -15,8 +16,8 @@ interface ButtonProps extends TouchableOpacityProps {
   type?: "primary" | "secondary" | "outline" | "text";
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
 }
 

@@ -19,7 +19,7 @@ import {
     Phone,
 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Marker } from "react-native-maps";
+import { Marker, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest } from "@/lib/api";
 
@@ -39,12 +39,36 @@ export default function TrackingScreen() {
   const fetchDelivery = async () => {
     try {
         const response = await apiRequest<any>("/delivery-requests/" + id, { auth: "user" });
-        if (response.data) setDelivery(response.data);
+        if (response.data) {
+            setDelivery(response.data);
+            fitMap(response.data);
+        }
     } catch (error) {
       console.error("Fetch tracking error:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fitMap = (d: any) => {
+    if (!mapRef.current || !d.pickup_lat || !d.dropoff_lat) return;
+
+    const coordinates = [
+      { latitude: Number(d.pickup_lat), longitude: Number(d.pickup_lng) },
+      { latitude: Number(d.dropoff_lat), longitude: Number(d.dropoff_lng) },
+    ];
+
+    if (d.agent && d.agent.current_lat) {
+      coordinates.push({ 
+        latitude: Number(d.agent.current_lat), 
+        longitude: Number(d.agent.current_lng) 
+      });
+    }
+
+    (mapRef.current as any).fitToCoordinates(coordinates, {
+      edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+      animated: true,
+    });
   };
 
   const getTimelineSteps = (d: any) => {
@@ -108,6 +132,29 @@ export default function TrackingScreen() {
             }} 
             mapStyle={[]} 
           >
+            {delivery.pickup_lat && delivery.dropoff_lat && (
+              <>
+                <Marker 
+                  coordinate={{ latitude: Number(delivery.pickup_lat), longitude: Number(delivery.pickup_lng) }}
+                  title="Pickup"
+                  pinColor={THEME.colors.primary}
+                />
+                <Marker 
+                  coordinate={{ latitude: Number(delivery.dropoff_lat), longitude: Number(delivery.dropoff_lng) }}
+                  title="Dropoff"
+                  pinColor={THEME.colors.secondary}
+                />
+                <Polyline
+                  coordinates={[
+                    { latitude: Number(delivery.pickup_lat), longitude: Number(delivery.pickup_lng) },
+                    { latitude: Number(delivery.dropoff_lat), longitude: Number(delivery.dropoff_lng) },
+                  ]}
+                  strokeColor={THEME.colors.primary}
+                  strokeWidth={3}
+                  lineDashPattern={[5, 5]}
+                />
+              </>
+            )}
             {delivery.agent && delivery.agent.current_lat && (
               <Marker coordinate={{ 
                 latitude: Number(delivery.agent.current_lat), 

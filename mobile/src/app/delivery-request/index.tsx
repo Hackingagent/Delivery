@@ -44,7 +44,11 @@ export default function DeliveryRequestScreen() {
             auth: "user",
             body: JSON.stringify({
                 pickup_location: pickupLocation,
+                pickup_lat: 5.9610,
+                pickup_lng: 10.1550,
                 dropoff_location: dropoffLocation,
+                dropoff_lat: 5.9650,
+                dropoff_lng: 10.1620,
                 package_details: packageDetails,
                 fare: fare,
             }),
