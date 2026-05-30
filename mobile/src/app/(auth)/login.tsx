@@ -1,11 +1,14 @@
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { THEME } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
 import { styles } from "@/styles/(auth)/login.styles";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Lock, Mail } from "lucide-react-native";
+import React, { useState } from "react";
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -15,6 +18,30 @@ import {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await login(email, password);
+      // Wait a bit to ensure context updates
+      setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 100);
+    } catch (error: any) {
+      Alert.alert("Login Failed", error.message || "An error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -45,6 +72,9 @@ export default function LoginScreen() {
             placeholder="example@email.com"
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            editable={!isLoading}
             icon={<Mail color={THEME.colors.textMuted} size={20} />}
           />
 
@@ -52,6 +82,9 @@ export default function LoginScreen() {
             label="Password"
             placeholder="Enter your password"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            editable={!isLoading}
             icon={<Lock color={THEME.colors.textMuted} size={20} />}
           />
 
@@ -64,8 +97,9 @@ export default function LoginScreen() {
           </View>
 
           <Button
-            title="Sign In"
-            onPress={() => router.replace("/(tabs)/")}
+            title={isLoading ? "Signing In..." : "Sign In"}
+            onPress={handleLogin}
+            disabled={isLoading}
             style={styles.submitButton}
           />
 

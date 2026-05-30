@@ -1,6 +1,5 @@
 import { API_URL } from "@/constants/api";
-import { getAdminToken } from "@/lib/adminAuth";
-import { getAgentToken } from "@/lib/agentAuth";
+import { getAdminToken, getAgentToken, getAuthToken } from "@/lib/storage";
 
 export class ApiError extends Error {
   status: number;
@@ -17,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-export type AuthScope = "admin" | "agent";
+export type AuthScope = "admin" | "agent" | "user";
 
 type RequestOptions = RequestInit & {
   auth?: AuthScope | false;
@@ -44,6 +43,13 @@ export async function apiRequest<T>(
 
   if (auth === "agent") {
     const token = await getAgentToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  if (auth === "user") {
+    const token = await getAuthToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }

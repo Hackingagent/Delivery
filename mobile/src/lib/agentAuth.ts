@@ -1,13 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiRequest } from "@/lib/api";
+import { AGENT_TOKEN_KEY, getAgentToken } from "@/lib/storage";
 import type { Agent, AgentLoginResponse } from "@/types/agent";
 
-const TOKEN_KEY = "bamenda_agent_token";
 const AGENT_KEY = "bamenda_agent_profile";
 
-export async function getAgentToken(): Promise<string | null> {
-  return AsyncStorage.getItem(TOKEN_KEY);
-}
+export { getAgentToken };
 
 export async function getStoredAgent(): Promise<Agent | null> {
   const raw = await AsyncStorage.getItem(AGENT_KEY);
@@ -28,7 +26,7 @@ export async function agentLogin(
     body: JSON.stringify({ phone, pin }),
   });
 
-  await AsyncStorage.setItem(TOKEN_KEY, data.token);
+  await AsyncStorage.setItem(AGENT_TOKEN_KEY, data.token);
   await AsyncStorage.setItem(AGENT_KEY, JSON.stringify(data.agent));
 
   return data;
@@ -48,7 +46,7 @@ export async function agentLogout(): Promise<void> {
     }
   }
 
-  await AsyncStorage.multiRemove([TOKEN_KEY, AGENT_KEY]);
+  await AsyncStorage.multiRemove([AGENT_TOKEN_KEY, AGENT_KEY]);
 }
 
 export async function fetchAgentProfile(): Promise<Agent> {

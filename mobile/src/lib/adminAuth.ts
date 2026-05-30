@@ -1,13 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { AdminUser, LoginResponse } from "@/types/admin";
 import { apiRequest } from "@/lib/api";
+import { ADMIN_TOKEN_KEY, getAdminToken } from "@/lib/storage";
+import type { AdminUser, LoginResponse } from "@/types/admin";
 
-const TOKEN_KEY = "bamenda_admin_token";
 const ADMIN_KEY = "bamenda_admin_profile";
 
-export async function getAdminToken(): Promise<string | null> {
-  return AsyncStorage.getItem(TOKEN_KEY);
-}
+export { getAdminToken };
 
 export async function getStoredAdmin(): Promise<AdminUser | null> {
   const raw = await AsyncStorage.getItem(ADMIN_KEY);
@@ -28,7 +26,7 @@ export async function adminLogin(
     body: JSON.stringify({ email, password }),
   });
 
-  await AsyncStorage.setItem(TOKEN_KEY, data.token);
+  await AsyncStorage.setItem(ADMIN_TOKEN_KEY, data.token);
   await AsyncStorage.setItem(ADMIN_KEY, JSON.stringify(data.admin));
 
   return data;
@@ -48,7 +46,7 @@ export async function adminLogout(): Promise<void> {
     }
   }
 
-  await AsyncStorage.multiRemove([TOKEN_KEY, ADMIN_KEY]);
+  await AsyncStorage.multiRemove([ADMIN_TOKEN_KEY, ADMIN_KEY]);
 }
 
 export async function fetchAdminProfile(): Promise<AdminUser> {

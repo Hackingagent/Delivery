@@ -1,13 +1,5 @@
-import { Button } from "@/components/Button";
-import { THEME } from "@/constants/theme";
-import { deleteAgent, fetchAgents } from "@/lib/agentsApi";
-import type { Agent } from "@/types/admin";
-import { useFocusEffect, useRouter } from "expo-router";
 import {
   Alert,
-  Circle,
-  Edit3,
-  Phone,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,7 +7,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { User, UserPlus } from "lucide-react-native";
+import { Button } from "@/components/Button";
+import { THEME } from "@/constants/theme";
+import { Edit3, Phone, Circle, User, UserPlus } from "lucide-react-native";
+import { deleteAgent, fetchAgents } from "@/lib/agentsApi";
+import type { Agent } from "@/types/admin";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -185,7 +182,7 @@ export default function AdminAgentsScreen() {
                 <View style={styles.agentInfo}>
                   <Text style={styles.agentName}>{agent.name}</Text>
                   <View style={styles.statusRow}>
-                    <Circle color={iconColor} fill={iconColor} size={10} />
+                    <Circle color={iconColor} size={10} />
                     <Text style={styles.statusText}>{agent.status_label}</Text>
                     <Text style={styles.licenseText}>
                       {" "}
