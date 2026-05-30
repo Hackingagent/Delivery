@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\DeliveryRequestController as AdminDeliveryReq
 use App\Http\Controllers\Api\Agent\AuthController as AgentAuthController;
 use App\Http\Controllers\Api\User\AuthController as UserAuthController;
 use App\Http\Controllers\Api\User\DeliveryRequestController as UserDeliveryRequestController;
+use App\Http\Controllers\Api\User\UserController;
 use App\Http\Middleware\AuthenticateAdmin;
 use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\AuthenticateUser;
@@ -14,13 +15,14 @@ use Illuminate\Support\Facades\Route;
 Route::post('register', [UserAuthController::class, 'register']);
 Route::post('login', [UserAuthController::class, 'login']);
 
-Route::middleware(AuthenticateUser::class)->group(function () {
+Route::prefix('user')->middleware(AuthenticateUser::class)->group(function () {
     Route::get('me', [UserAuthController::class, 'me']);
     Route::post('logout', [UserAuthController::class, 'logout']);
 
     Route::get('delivery-requests', [UserDeliveryRequestController::class, 'index']);
     Route::get('delivery-requests/{id}', [UserDeliveryRequestController::class, 'show']);
     Route::post('delivery-requests', [UserDeliveryRequestController::class, 'store']);
+    Route::get('users', [UserController::class, 'index']);
 });
 
 Route::prefix('admin')->group(function () {
@@ -32,6 +34,7 @@ Route::prefix('admin')->group(function () {
 
         Route::apiResource('agents', AgentController::class);
         
+        Route::get('dashboard', [App\Http\Controllers\Api\Admin\DashboardController::class, 'index']);
         Route::get('delivery-requests', [AdminDeliveryRequestController::class, 'index']);
         Route::post('delivery-requests/{id}/assign', [AdminDeliveryRequestController::class, 'assignAgent']);
     });

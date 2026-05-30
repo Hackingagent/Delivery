@@ -10,9 +10,13 @@ import {
     MapPin,
     Navigation,
     Package,
+    User,
+    Phone,
+    Search,
+    Check,
 } from "lucide-react-native";
 import { apiRequest } from "@/lib/api";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
     Alert,
     KeyboardAvoidingView,
@@ -21,6 +25,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from "react-native";
 
 export default function DeliveryRequestScreen() {
@@ -29,11 +34,63 @@ export default function DeliveryRequestScreen() {
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [packageDetails, setPackageDetails] = useState("");
-  const fare = 1500; // Fixed fare for now as in the UI
+  
+  // Recipient State
+  const [recipientType, setRecipientType] = useState<"platform" | "manual">("manual");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientUserId, setRecipientUserId] = useState<number | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const fare = 1500;
+
+  const performSearch = async (query: string) => {
+    if (!query.trim()) {
+        setSearchResults([]);
+        return;
+    }
+    setSearching(true);
+    try {
+        const response = await apiRequest<any>(`/user/users?search=${query}`, { auth: "user" });
+        setSearchResults(response.data || []);
+    } catch (error) {
+        console.error("Search users error:", error);
+    } finally {
+        setSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    if (recipientType !== "platform" || !userSearchQuery.trim()) {
+        setSearchResults([]);
+        return;
+    }
+
+    const handler = setTimeout(() => {
+        performSearch(userSearchQuery);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [userSearchQuery, recipientType]);
+
+  const selectUser = (user: any) => {
+    setRecipientUserId(user.id);
+    setRecipientName(user.name);
+    setRecipientPhone(user.phone || "");
+    setUserSearchQuery(user.name);
+    setSearchResults([]);
+  };
 
   const handleConfirm = async () => {
     if (!pickupLocation || !dropoffLocation || !packageDetails) {
-        Alert.alert("Error", "Please fill in all fields.");
+        Alert.alert("Error", "Please fill in all location and package fields.");
+        return;
+    }
+
+    if (!recipientName || !recipientPhone) {
+        Alert.alert("Error", "Please provide recipient name and phone.");
         return;
     }
 
@@ -51,6 +108,9 @@ export default function DeliveryRequestScreen() {
                 dropoff_lng: 10.1620,
                 package_details: packageDetails,
                 fare: fare,
+                recipient_name: recipientName,
+                recipient_phone: recipientPhone,
+                recipient_user_id: recipientUserId,
             }),
         });
 
@@ -74,13 +134,9 @@ export default function DeliveryRequestScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      
     >
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft color={THEME.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Delivery</Text>
@@ -117,6 +173,76 @@ export default function DeliveryRequestScreen() {
               style={styles.destinationInput}
             />
           </View>
+        </Card>
+
+        {/* Recipient Details */}
+        <Card style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Recipient Information</Text>
+          
+          <View style={styles.recipientToggle}>
+            <TouchableOpacity 
+                style={[styles.recipientOption, recipientType === "manual" && styles.recipientOptionActive]}
+                onPress={() => {
+                    setRecipientType("manual");
+                    setRecipientUserId(null);
+                    setRecipientName("");
+                    setRecipientPhone("");
+                }}
+            >
+                <Text style={[styles.recipientOptionText, recipientType === "manual" && styles.recipientOptionTextActive]}>MANUAL ENTRY</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+                style={[styles.recipientOption, recipientType === "platform" && styles.recipientOptionActive]}
+                onPress={() => setRecipientType("platform")}
+            >
+                <Text style={[styles.recipientOptionText, recipientType === "platform" && styles.recipientOptionTextActive]}>SELECT USER</Text>
+            </TouchableOpacity>
+          </View>
+
+          {recipientType === "platform" ? (
+            <View>
+                <Input
+                    placeholder="Search user by name or phone..."
+                    value={userSearchQuery}
+                    onChangeText={setUserSearchQuery}
+                    editable={!calculating}
+                    icon={searching ? <ActivityIndicator size="small" color={THEME.colors.primary} /> : <Search color={THEME.colors.primary} size={20} />}
+                />
+                {searchResults.length > 0 && (
+                    <View style={{ marginTop: -10, marginBottom: 15, backgroundColor: THEME.colors.background, borderRadius: 10 }}>
+                        {searchResults.map((user) => (
+                            <TouchableOpacity key={user.id} style={styles.userSearchResult} onPress={() => selectUser(user)}>
+                                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                                    <View>
+                                        <Text style={styles.userName}>{user.name}</Text>
+                                        <Text style={styles.userPhone}>{user.phone}</Text>
+                                    </View>
+                                    {recipientUserId === user.id && <Check color={THEME.colors.success} size={20} />}
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+            </View>
+          ) : (
+            <View>
+                <Input
+                    placeholder="Recipient Name"
+                    value={recipientName}
+                    onChangeText={setRecipientName}
+                    editable={!calculating}
+                    icon={<User color={THEME.colors.textLight} size={20} />}
+                />
+                <Input
+                    placeholder="Recipient Phone"
+                    value={recipientPhone}
+                    onChangeText={setRecipientPhone}
+                    editable={!calculating}
+                    keyboardType="phone-pad"
+                    icon={<Phone color={THEME.colors.textLight} size={20} />}
+                />
+            </View>
+          )}
         </Card>
 
         <Card style={styles.sectionCard}>

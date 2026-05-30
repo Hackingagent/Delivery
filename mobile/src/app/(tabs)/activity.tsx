@@ -7,12 +7,12 @@ import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    SafeAreaView,
     ScrollView,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest } from "@/lib/api";
 
 export default function ActivityScreen() {
@@ -27,7 +27,7 @@ export default function ActivityScreen() {
   const fetchActivities = async () => {
     setLoading(true);
     try {
-      const response = await apiRequest<any>("/delivery-requests", {
+      const response = await apiRequest<any>("/user/delivery-requests", {
         auth: "user",
       });
       // The API returns a paginated object or direct array, assuming it has data based on index() implementation

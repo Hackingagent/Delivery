@@ -41,6 +41,9 @@ class DeliveryRequestController extends Controller
             'dropoff_lng' => 'nullable|numeric',
             'package_details' => 'required|string',
             'fare' => 'required|numeric|min:0',
+            'recipient_name' => 'nullable|string|max:255',
+            'recipient_phone' => 'nullable|string|max:20',
+            'recipient_user_id' => 'nullable|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -57,6 +60,9 @@ class DeliveryRequestController extends Controller
             'dropoff_lng' => $request->dropoff_lng,
             'package_details' => $request->package_details,
             'fare' => $request->fare,
+            'recipient_name' => $request->recipient_name,
+            'recipient_phone' => $request->recipient_phone,
+            'recipient_user_id' => $request->recipient_user_id,
             'status' => 'pending',
         ]);
 

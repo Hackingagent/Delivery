@@ -25,6 +25,9 @@ class DeliveryRequest extends Model
         'delivered_at',
         'pickup_image_path',
         'delivery_image_path',
+        'recipient_name',
+        'recipient_phone',
+        'recipient_user_id',
     ];
 
     protected $appends = ['pickup_image_url', 'delivery_image_url'];
@@ -55,5 +58,10 @@ class DeliveryRequest extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class);
+    }
+
+    public function recipient(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recipient_user_id');
     }
 }

@@ -3,9 +3,12 @@ import {
     ArrowUpRight,
     Calendar,
     Package,
-    Users
+    Users,
+    Clock,
 } from "lucide-react-native";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -13,26 +16,71 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest } from "@/lib/api";
+import { useEffect, useState, useCallback } from "react";
 
 export default function AdminDashboardScreen() {
-  // Mock Data for the spectacular chart
-  const weeklyRevenue = [40, 65, 45, 80, 55, 90, 75]; // percentages for height
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [data, setData] = useState<any>(null);
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+        const response = await apiRequest<any>("/admin/dashboard", { auth: "admin" });
+        setData(response);
+    } catch (error) {
+        console.error("Fetch dashboard error:", error);
+    } finally {
+        setLoading(false);
+        setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 60000); // 1 minute auto-refresh
+    return () => clearInterval(interval);
+  }, [fetchDashboard]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDashboard();
+  };
+
+  if (loading && !data) {
+    return (
+        <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+            <ActivityIndicator size="large" color={THEME.colors.primary} />
+        </View>
+    );
+  }
+
+  const { stats, weekly_revenue, recent_activities } = data || { 
+    stats: { total_revenue: 0, online_agents: 0, completed_today: 0 },
+    weekly_revenue: [],
+    recent_activities: []
+  };
+
+  // Find max revenue for chart scaling
+  const maxRevenue = Math.max(...weekly_revenue.map((w: any) => w.revenue), 1000);
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <View style={styles.headerFlex}>
           <View>
             <Text style={styles.pageTitle}>Overview</Text>
-            <Text style={styles.dateSubtitle}>Today, Oct 24</Text>
+            <Text style={styles.dateSubtitle}>Live System Status</Text>
           </View>
-          <TouchableOpacity style={styles.filterBtn}>
+          <TouchableOpacity style={styles.filterBtn} onPress={onRefresh}>
             <Calendar color={THEME.colors.primary} size={18} />
-            <Text style={styles.filterText}>This Week</Text>
+            <Text style={styles.filterText}>Sync Data</Text>
           </TouchableOpacity>
         </View>
 
@@ -41,43 +89,46 @@ export default function AdminDashboardScreen() {
           <View style={styles.chartHeader}>
             <View>
               <Text style={styles.chartTitle}>Total Revenue</Text>
-              <Text style={styles.chartValue}>1,425,000 FCFA</Text>
+              <Text style={styles.chartValue}>{Number(stats.total_revenue).toLocaleString()} FCFA</Text>
             </View>
             <View style={styles.growthBadge}>
               <ArrowUpRight color={THEME.colors.success} size={16} />
-              <Text style={styles.growthText}>+14.5%</Text>
+              <Text style={styles.growthText}>Live</Text>
             </View>
           </View>
 
           {/* Custom Native Bar Chart */}
           <View style={styles.chartGraph}>
-            {weeklyRevenue.map((height, index) => (
-              <View key={index} style={styles.barColumn}>
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: `${height}%`,
-                      backgroundColor:
-                        index === 5
-                          ? THEME.colors.primary
-                          : THEME.colors.primary + "40",
-                    },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.barLabel,
-                    index === 5 && {
-                      color: THEME.colors.text,
-                      fontWeight: "700",
-                    },
-                  ]}
-                >
-                  {days[index]}
-                </Text>
-              </View>
-            ))}
+            {weekly_revenue.map((item: any, index: number) => {
+              const heightPercentage = Math.max((item.revenue / maxRevenue) * 100, 5);
+              return (
+                <View key={index} style={styles.barColumn}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: `${heightPercentage}%`,
+                        backgroundColor:
+                          index === weekly_revenue.length - 1
+                            ? THEME.colors.primary
+                            : THEME.colors.primary + "40",
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.barLabel,
+                      index === weekly_revenue.length - 1 && {
+                        color: THEME.colors.text,
+                        fontWeight: "700",
+                      },
+                    ]}
+                  >
+                    {item.day}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
@@ -93,7 +144,7 @@ export default function AdminDashboardScreen() {
             >
               <Users color={THEME.colors.secondary} size={24} />
             </View>
-            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statValue}>{stats.online_agents}</Text>
             <Text style={styles.statLabel}>Online Agents</Text>
           </View>
 
@@ -106,7 +157,7 @@ export default function AdminDashboardScreen() {
             >
               <Package color={THEME.colors.success} size={24} />
             </View>
-            <Text style={styles.statValue}>38</Text>
+            <Text style={styles.statValue}>{stats.completed_today}</Text>
             <Text style={styles.statLabel}>Completed Today</Text>
           </View>
         </View>
@@ -114,20 +165,28 @@ export default function AdminDashboardScreen() {
         <Text style={styles.sectionTitle}>Global Live Feed</Text>
 
         <View style={styles.activityList}>
-          {["BAM-TX92", "BAM-1044", "BAM-1090"].map((id, index) => (
-            <View key={id} style={styles.activityItem}>
-              <View style={styles.activityDot} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>
-                  Order {id} Status Changed
-                </Text>
-                <Text style={styles.activitySubtitle}>
-                  Driver Jude accepted the request
+          {recent_activities.length === 0 ? (
+            <Text style={{ textAlign: "center", color: THEME.colors.textMuted, padding: 20 }}>No recent activity.</Text>
+          ) : (
+            recent_activities.map((activity: any) => (
+              <View key={activity.id} style={styles.activityItem}>
+                <View style={[styles.activityDot, { 
+                  backgroundColor: activity.status === 'delivered' ? THEME.colors.success : THEME.colors.primary 
+                }]} />
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>
+                    Order BAM-{activity.id}
+                  </Text>
+                  <Text style={styles.activitySubtitle}>
+                    {activity.status.replace('_', ' ').toUpperCase()} • {activity.user_name}
+                  </Text>
+                </View>
+                <Text style={styles.activityTime}>
+                    {new Date(activity.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
-              <Text style={styles.activityTime}>{index * 12 + 2}m ago</Text>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import {
     ActivityIndicator,
     Alert,
+    Image,
     Modal,
     ScrollView,
     StyleSheet,
@@ -156,6 +157,11 @@ export default function AdminRequestsScreen() {
               {activeRequest === req.id && (
                 <View style={styles.expandedMenu}>
                   <View style={styles.divider} />
+                  <Text style={styles.assignLabel}>Recipient Information</Text>
+                  <View style={{ marginBottom: 15 }}>
+                      <Text style={styles.locationText}>{req.recipient_name || "N/A"}</Text>
+                      <Text style={styles.subtitleText}>{req.recipient_phone || "No phone provided"}</Text>
+                  </View>
                   <Text style={styles.assignLabel}>Admin Controls</Text>
 
                   {req.status === "pending" ? (
@@ -192,6 +198,28 @@ export default function AdminRequestsScreen() {
                       />
                     </View>
                   )}
+
+                  {/* Proof of Delivery Images */}
+                  {(req.pickup_image_url || req.delivery_image_url) && (
+                    <View style={styles.proofSection}>
+                      <Text style={styles.proofTitle}>Verification Photos</Text>
+                      <View style={styles.proofRow}>
+                        {req.pickup_image_url && (
+                          <View style={styles.proofCard}>
+                            <Image source={{ uri: req.pickup_image_url }} style={styles.proofImage} />
+                            <Text style={styles.proofLabel}>📦 Pick Up</Text>
+                          </View>
+                        )}
+                        {req.delivery_image_url && (
+                          <View style={styles.proofCard}>
+                            <Image source={{ uri: req.delivery_image_url }} style={styles.proofImage} />
+                            <Text style={styles.proofLabel}>✅ Delivered</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
                 </View>
               )}
 
@@ -425,5 +453,40 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+  proofSection: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: THEME.colors.borderLight,
+  },
+  proofTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: THEME.colors.textMuted,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  proofRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  proofCard: {
+    flex: 1,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: THEME.colors.background,
+  },
+  proofImage: {
+    width: "100%",
+    height: 110,
+    resizeMode: "cover",
+  },
+  proofLabel: {
+    padding: 6,
+    fontSize: 11,
+    fontWeight: "700",
+    textAlign: "center",
+    color: THEME.colors.text,
   },
 });

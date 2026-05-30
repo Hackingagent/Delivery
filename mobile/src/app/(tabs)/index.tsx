@@ -3,22 +3,42 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { THEME } from "@/constants/theme";
 import { styles } from "@/styles/(tabs)/index.styles";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Crosshair, Menu, Package, Search } from "lucide-react-native";
-import { useRef } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { useRef, useState, useCallback } from "react";
+import { Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { Marker } from "react-native-maps";
+import { apiRequest } from "@/lib/api";
 
 const INITIAL_REGION = {
   latitude: 5.9631,
   longitude: 10.1591,
-  latitudeDelta: 0.05,
-  longitudeDelta: 0.05,
+  latitudeDelta: 0.1,
+  longitudeDelta: 0.1,
 };
 
 export default function DashboardMapScreen() {
   const mapRef = useRef<any>(null);
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+
+  const fetchData = async () => {
+    try {
+      const response = await apiRequest<any>("/user/delivery-requests", { auth: "user" });
+      setDeliveries(response.data || []);
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleCurrentLocation = () => {
     if (mapRef.current?.animateToRegion) {
@@ -28,24 +48,25 @@ export default function DashboardMapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background Map extracted for Web compatibility */}
       <BAMap ref={mapRef} initialRegion={INITIAL_REGION} mapStyle={mapStyle}>
-        <Marker coordinate={{ latitude: 5.961, longitude: 10.155 }}>
-          <View style={styles.driverMarkerContainer}>
-            <View style={styles.driverMarker}>
-              <Text style={styles.driverMarkerText}>🏍️</Text>
+        {deliveries.filter(d => d.status === 'assigned' || d.status === 'picked_up').map((req) => (
+           <Marker 
+            key={req.id} 
+            coordinate={{ 
+              latitude: Number(req.pickup_lat), 
+              longitude: Number(req.pickup_lng) 
+            }}
+            title={`Order BAM-${req.id}`}
+            description={req.status}
+           >
+            <View style={styles.driverMarkerContainer}>
+                <View style={[styles.driverMarker, { backgroundColor: THEME.colors.primary }]}>
+                    <Text style={styles.driverMarkerText}>📦</Text>
+                </View>
+                <View style={[styles.driverMarkerTriangle, { borderTopColor: THEME.colors.primary }]} />
             </View>
-            <View style={styles.driverMarkerTriangle} />
-          </View>
-        </Marker>
-        <Marker coordinate={{ latitude: 5.965, longitude: 10.162 }}>
-          <View style={styles.driverMarkerContainer}>
-            <View style={styles.driverMarker}>
-              <Text style={styles.driverMarkerText}>🚲</Text>
-            </View>
-            <View style={styles.driverMarkerTriangle} />
-          </View>
-        </Marker>
+           </Marker>
+        ))}
       </BAMap>
 
       {/* Floating Header */}
@@ -57,7 +78,7 @@ export default function DashboardMapScreen() {
           <Menu color={THEME.colors.text} size={24} />
         </TouchableOpacity>
         <Card noPadding elevation="small" style={styles.searchCard}>
-          <TouchableOpacity style={styles.searchButton}>
+          <TouchableOpacity style={styles.searchButton} onPress={() => router.push("/delivery-request")}>
             <Search color={THEME.colors.primary} size={20} />
             <Text style={styles.searchText}>Where do you need delivery?</Text>
           </TouchableOpacity>
@@ -66,6 +87,12 @@ export default function DashboardMapScreen() {
 
       {/* Action Buttons Overlay */}
       <View style={styles.actionsContainer}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={fetchData}
+        >
+          <Package color={THEME.colors.primary} size={24} />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={handleCurrentLocation}
@@ -85,7 +112,7 @@ export default function DashboardMapScreen() {
         <Button
           title="Start Request"
           icon={<Package color={THEME.colors.surface} size={20} />}
-          onPress={() => router.push("/delivery-request/")}
+          onPress={() => router.push("/delivery-request")}
           style={styles.requestButton}
         />
       </View>

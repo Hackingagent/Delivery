@@ -107,4 +107,45 @@ export const styles = StyleSheet.create({
     backgroundColor: THEME.colors.surface,
     ...THEME.shadows.medium,
   },
+  recipientToggle: {
+    flexDirection: "row",
+    backgroundColor: THEME.colors.background,
+    borderRadius: THEME.sizes.radiusMd,
+    padding: 4,
+    marginBottom: THEME.sizes.spacingLg,
+  },
+  recipientOption: {
+    flex: 1,
+    paddingVertical: THEME.sizes.spacingSm,
+    alignItems: "center",
+    borderRadius: THEME.sizes.radiusMd - 2,
+  },
+  recipientOptionActive: {
+    backgroundColor: THEME.colors.surface,
+    ...THEME.shadows.small,
+  },
+  recipientOptionText: {
+    fontSize: THEME.sizes.xs,
+    fontWeight: "600",
+    color: THEME.colors.textMuted,
+  },
+  recipientOptionTextActive: {
+    color: THEME.colors.primary,
+    fontWeight: "700",
+  },
+  userSearchResult: {
+    padding: THEME.sizes.spacing,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.colors.borderLight,
+  },
+  userName: {
+    fontSize: THEME.sizes.sm,
+    fontWeight: "700",
+    color: THEME.colors.text,
+  },
+  userPhone: {
+    fontSize: THEME.sizes.xs,
+    color: THEME.colors.textMuted,
+    marginTop: 2,
+  },
 });
