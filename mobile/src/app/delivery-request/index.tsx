@@ -11,8 +11,10 @@ import {
     Navigation,
     Package,
 } from "lucide-react-native";
+import { apiRequest } from "@/lib/api";
 import { useState } from "react";
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -24,13 +26,37 @@ import {
 export default function DeliveryRequestScreen() {
   const router = useRouter();
   const [calculating, setCalculating] = useState(false);
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [dropoffLocation, setDropoffLocation] = useState("");
+  const [packageDetails, setPackageDetails] = useState("");
+  const fare = 1500; // Fixed fare for now as in the UI
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!pickupLocation || !dropoffLocation || !packageDetails) {
+        Alert.alert("Error", "Please fill in all fields.");
+        return;
+    }
+
     setCalculating(true);
-    setTimeout(() => {
-      setCalculating(false);
-      router.push("/payment/");
-    }, 1200);
+    try {
+        const response = await apiRequest("/delivery-requests", {
+            method: "POST",
+            auth: "user",
+            body: JSON.stringify({
+                pickup_location: pickupLocation,
+                dropoff_location: dropoffLocation,
+                package_details: packageDetails,
+                fare: fare,
+            }),
+        });
+
+        Alert.alert("Success", "Delivery request created successfully.");
+        router.replace("/(tabs)/activity");
+    } catch (error: any) {
+        Alert.alert("Error", error.message || "Failed to create delivery request.");
+    } finally {
+        setCalculating(false);
+    }
   };
 
   return (
@@ -66,10 +92,16 @@ export default function DeliveryRequestScreen() {
           <View style={styles.inputsWrapper}>
             <Input
               placeholder="Pickup Location (e.g., Commercial Avenue)"
+              value={pickupLocation}
+              onChangeText={setPickupLocation}
+              editable={!calculating}
               icon={<MapPin color={THEME.colors.primary} size={20} />}
             />
             <Input
               placeholder="Drop-off Destination (e.g., Nkwen)"
+              value={dropoffLocation}
+              onChangeText={setDropoffLocation}
+              editable={!calculating}
               icon={<Navigation color={THEME.colors.success} size={20} />}
               style={styles.destinationInput}
             />
@@ -80,6 +112,9 @@ export default function DeliveryRequestScreen() {
           <Text style={styles.sectionTitle}>Package Information</Text>
           <Input
             placeholder="What are we delivering?"
+            value={packageDetails}
+            onChangeText={setPackageDetails}
+            editable={!calculating}
             icon={<Package color={THEME.colors.textLight} size={20} />}
           />
         </Card>

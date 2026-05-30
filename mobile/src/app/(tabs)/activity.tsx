@@ -3,51 +3,63 @@ import { THEME } from "@/constants/theme";
 import { styles } from "@/styles/(tabs)/activity.styles";
 import { useRouter } from "expo-router";
 import { Clock, MapPin, PackageCheck } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     SafeAreaView,
     ScrollView,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { apiRequest } from "@/lib/api";
 
 export default function ActivityScreen() {
-  const pastDeliveries = [
-    {
-      id: 1,
-      date: "Today, 2:30 PM",
-      status: "Delivered",
-      price: "1,500 FCFA",
-      from: "Commercial Avenue",
-      to: "Nkwen",
-    },
-    {
-      id: 2,
-      date: "Yesterday, 10:15 AM",
-      status: "Delivered",
-      price: "2,000 FCFA",
-      from: "Bambili",
-      to: "Up Station",
-    },
-    {
-      id: 3,
-      date: "May 14, 4:00 PM",
-      status: "Cancelled",
-      price: "0 FCFA",
-      from: "Hospital Roundabout",
-      to: "Mile 90",
-    },
-    {
-      id: 4,
-      date: "Just Now",
-      status: "In Transit",
-      price: "1,200 FCFA",
-      from: "Food Market",
-      to: "Up Station",
-    },
-  ];
-
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
+  const fetchActivities = async () => {
+    setLoading(true);
+    try {
+      const response = await apiRequest<any>("/delivery-requests", {
+        auth: "user",
+      });
+      // The API returns a paginated object or direct array, assuming it has data based on index() implementation
+      setDeliveries(response.data || response || []);
+    } catch (error: any) {
+      Alert.alert("Error", "Failed to load activities: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'XAF',
+      minimumFractionDigits: 0,
+    }).format(amount).replace('XAF', '').trim() + ' FCFA';
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -61,71 +73,89 @@ export default function ActivityScreen() {
       >
         <Text style={styles.sectionTitle}>Recent Deliveries</Text>
 
-        {pastDeliveries.map((delivery) => (
-          <TouchableOpacity
-            key={delivery.id}
-            activeOpacity={0.8}
-            onPress={() => {
-              if (delivery.status === "Delivered") {
-                router.push(`/receipts/${delivery.id}`);
-              } else {
-                router.push(`/track/${delivery.id}`);
-              }
-            }}
-          >
-            <Card style={styles.activityCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.dateContainer}>
-                  <Clock color={THEME.colors.textLight} size={16} />
-                  <Text style={styles.dateText}>{delivery.date}</Text>
+        {loading ? (
+          <View style={{ marginTop: 40 }}>
+            <ActivityIndicator size="large" color={THEME.colors.primary} />
+          </View>
+        ) : deliveries.length === 0 ? (
+          <View style={{ marginTop: 40, alignItems: "center" }}>
+            <Text style={styles.dateText}>No activities found yet.</Text>
+          </View>
+        ) : (
+          deliveries.map((delivery) => (
+            <TouchableOpacity
+              key={delivery.id}
+              activeOpacity={0.8}
+              onPress={() => {
+                if (delivery.status === "delivered") {
+                  router.push(`/receipts/${delivery.id}`);
+                } else {
+                  router.push(`/track/${delivery.id}`);
+                }
+              }}
+            >
+              <Card style={styles.activityCard}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.dateContainer}>
+                    <Clock color={THEME.colors.textLight} size={16} />
+                    <Text style={styles.dateText}>{formatDate(delivery.created_at)}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.priceText,
+                      delivery.status === "cancelled" &&
+                        styles.priceTextCancelled,
+                    ]}
+                  >
+                    {formatCurrency(delivery.fare)}
+                  </Text>
                 </View>
-                <Text
+
+                <View style={styles.routeContainer}>
+                  <View style={styles.routeItem}>
+                    <MapPin color={THEME.colors.textMuted} size={16} />
+                    <Text style={styles.routeText}>{delivery.pickup_location}</Text>
+                  </View>
+                  <View style={styles.routeItem}>
+                    <PackageCheck
+                      color={
+                        delivery.status === "delivered"
+                          ? THEME.colors.success
+                          : delivery.status === "cancelled"
+                          ? THEME.colors.error
+                          : THEME.colors.primary
+                      }
+                      size={16}
+                    />
+                    <Text style={styles.routeText}>{delivery.dropoff_location}</Text>
+                  </View>
+                </View>
+
+                <View
                   style={[
-                    styles.priceText,
-                    delivery.status === "Cancelled" &&
-                      styles.priceTextCancelled,
+                    styles.statusBadge,
+                    delivery.status === "cancelled" && styles.statusBadgeError,
+                    (delivery.status === "pending" || delivery.status === "assigned" || delivery.status === "in_transit") && {
+                      backgroundColor: THEME.colors.primary + "15",
+                    },
                   ]}
                 >
-                  {delivery.price}
-                </Text>
-              </View>
-
-              <View style={styles.routeContainer}>
-                <View style={styles.routeItem}>
-                  <MapPin color={THEME.colors.textMuted} size={16} />
-                  <Text style={styles.routeText}>{delivery.from}</Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      delivery.status === "cancelled" && styles.statusTextError,
+                      (delivery.status === "pending" || delivery.status === "assigned" || delivery.status === "in_transit") && {
+                        color: THEME.colors.primary,
+                      },
+                    ]}
+                  >
+                    {delivery.status}
+                  </Text>
                 </View>
-                <View style={styles.routeItem}>
-                  <PackageCheck
-                    color={
-                      delivery.status === "Delivered"
-                        ? THEME.colors.success
-                        : THEME.colors.error
-                    }
-                    size={16}
-                  />
-                  <Text style={styles.routeText}>{delivery.to}</Text>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.statusBadge,
-                  delivery.status === "Cancelled" && styles.statusBadgeError,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    delivery.status === "Cancelled" && styles.statusTextError,
-                  ]}
-                >
-                  {delivery.status}
-                </Text>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        ))}
+              </Card>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
